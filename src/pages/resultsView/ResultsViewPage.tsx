@@ -13,6 +13,7 @@ import AppConfig from "appConfig";
 import CNSegments from "./cnSegments/CNSegments";
 import "./styles.scss";
 import Network from "./network/Network";
+import PathwayMapper from "./pathwayMapper/PathwayMapper";
 import ResultsViewOncoprint from "shared/components/oncoprint/ResultsViewOncoprint";
 import QuerySummary from "./querySummary/QuerySummary";
 import ExpressionWrapper from "./expression/ExpressionWrapper";
@@ -345,6 +346,24 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
                             />)
                         }
                     </MSKTab>
+                }
+            },
+
+            {
+                id: ResultsViewTab.PATHWAY_MAPPER,
+                hide:() => {
+                    // TODO should probably refer to "store.someData.result" to determine visibility
+                    return false;
+                },
+                getTab: () => {
+                    // TODO should probably wait for store.someData.isComplete before rendering
+                    return (
+                        <MSKTab key={13} id={ResultsViewTab.PATHWAY_MAPPER} linkText={'Pathway Mapper'}>
+                            {
+                                <PathwayMapper store={store}/>
+                            }
+                        </MSKTab>
+                    );
                 }
             },
 

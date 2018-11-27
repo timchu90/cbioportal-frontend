@@ -23,6 +23,7 @@ export enum ResultsViewTab {
     SURVIVAL="survival",
     CN_SEGMENTS="cnSegments",
     NETWORK="network",
+    PATHWAY_MAPPER="pathwayMapper",
     EXPRESSION="expression",
     DOWNLOAD="download"
 }
