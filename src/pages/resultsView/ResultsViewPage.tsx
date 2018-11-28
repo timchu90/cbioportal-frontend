@@ -166,8 +166,7 @@ export interface IResultsViewPageProps {
     params: any; // from react router
 }
 
-@inject('routing')
-@inject('appStore')
+@inject('appStore','routing')
 @observer
 export default class ResultsViewPage extends React.Component<IResultsViewPageProps, {}> {
 
@@ -437,15 +436,16 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
         return isRoutedTo || (!isExcludedInList && !isExcluded);
     }
 
-    // if it's undefined, MSKTabs will default to first
-    public currentTab(tabId:string|undefined):string | undefined {
+    public currentTab(tabId:string|undefined):string {
         // if we have no tab defined (query submission, no tab click)
         // we need to evaluate which should be the default tab
+        // this can only be determined by know the count of physical studies in the query
+        // (for virtual studies we need to fetch data determine constituent physical studies)
         if (tabId === undefined) {
             if (this.resultsViewPageStore.studies.result!.length > 1 && this.resultsViewPageStore.hugoGeneSymbols.length === 1) {
                 return ResultsViewTab.CANCER_TYPES_SUMMARY; // cancer type study
             } else {
-                return undefined; // this will resolve to first tab
+                return ResultsViewTab.ONCOPRINT; // this will resolve to first tab
             }
         } else {
             return tabId;
@@ -453,6 +453,8 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
     }
 
     @computed get pageContent(){
+
+        // if studies are complete but we don't have a tab id in route, we need to derive default
         return (<div>
             {
                 (this.resultsViewPageStore.studies.isComplete) && (
@@ -482,13 +484,21 @@ export default class ResultsViewPage extends React.Component<IResultsViewPagePro
     }
 
     public render() {
-        return (
-            <PageLayout noMargin={true}>
-                {
-                    this.pageContent
-                }
-            </PageLayout>
-        )
+
+        if (this.resultsViewPageStore.studies.isComplete && !this.resultsViewPageStore.tabId) {
+            setTimeout(()=>{
+                this.handleTabChange(this.currentTab(this.resultsViewPageStore.tabId));
+            });
+            return null;
+        } else {
+            return (
+                <PageLayout noMargin={true}>
+                    {
+                        this.pageContent
+                    }
+                </PageLayout>
+            )
+        }
 
     }
 
