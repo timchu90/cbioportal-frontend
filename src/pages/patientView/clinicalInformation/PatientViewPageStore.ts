@@ -48,6 +48,7 @@ import {stringListToSet} from "../../../shared/lib/StringUtils";
 import {MutationTableDownloadDataFetcher} from "shared/lib/MutationTableDownloadDataFetcher";
 import { VariantAnnotation } from 'shared/api/generated/GenomeNexusAPI';
 import { fetchVariantAnnotationsIndexedByGenomicLocation } from 'shared/lib/MutationAnnotator';
+import { ClinicalAttribute } from 'shared/api/generated/CBioPortalAPI';
 
 type PageMode = 'patient' | 'sample';
 
@@ -329,6 +330,35 @@ export class PatientViewPageStore {
         await: () => [this.clinicalDataForSamples],
         invoke: async() => groupBySampleId(this.sampleIds, this.clinicalDataForSamples.result)
     }, []);
+
+    readonly getWholeSlideViewerURLBySample = remoteData({
+        await: () => [this.clinicalDataGroupedBySample],
+        invoke: () => {
+            const clinicalData = this.clinicalDataGroupedBySample.result!;
+            const clinicalAttributeId = "COMP_PATH_WSV_URL";
+            if (clinicalData) {
+                const wholeSlideData = _.flatten(_.map(clinicalData, (data) => {
+                    return _.map(data.clinicalData, (attribute) => {
+                        if (attribute.clinicalAttributeId === clinicalAttributeId) {
+                            return attribute.value;
+                        }
+                        return null;
+                    })
+                })).filter(function (el) {
+                    return el != null;
+                });
+                
+                const ids: string[] = [];
+                _.forEach(wholeSlideData, (data) => {
+                    ids.push(data!.substring(data!.indexOf('=') + 1, data!.indexOf('@')));
+                });
+
+                const urlBuilder = ids.length > 1 ? `https://slides-res.mskcc.org/viewer?ids=${ids.join(';')}@annotation=off` : wholeSlideData[0];
+                return wholeSlideData ? Promise.resolve(urlBuilder) : Promise.resolve("");
+            }
+            return Promise.resolve("");
+        }
+    });
 
     readonly studyMetaData = remoteData({
         invoke: async() => client.getStudyUsingGET({studyId: this.studyId})

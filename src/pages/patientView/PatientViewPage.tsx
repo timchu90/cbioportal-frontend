@@ -505,6 +505,17 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                         </div>
                     </MSKTab>
 
+
+                    {(patientViewPageStore.getWholeSlideViewerURLBySample.isComplete === true && patientViewPageStore.getWholeSlideViewerURLBySample.result) && (
+                    <MSKTab key={6} id="MSKTissueImage" linkText="Tissue Image"
+                            hide={patientViewPageStore.studyId !== "mskimpact"}
+                    >
+                        <div style={{position: "relative"}}>
+                            <IFrameLoader height={700} url={ patientViewPageStore.getWholeSlideViewerURLBySample.result } />
+                        </div>
+                    </MSKTab>
+                    )}
+
                     {/*<MSKTab key={5} id="mutationalSignatures" linkText="Mutational Signature Data" hide={true}>*/}
                         {/*<div className="clearfix">*/}
                             {/*<FeatureTitle title="Mutational Signatures" isLoading={ patientViewPageStore.clinicalDataGroupedBySample.isPending } className="pull-left" />*/}
