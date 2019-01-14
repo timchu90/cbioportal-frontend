@@ -360,6 +360,17 @@ export class PatientViewPageStore {
         }
     });
 
+    readonly isWholeSlideViewerExist = remoteData({
+        await: () => [this.getWholeSlideViewerURLBySample],
+        invoke: async() => {
+            await request.get(this.getWholeSlideViewerURLBySample.result!);
+            return Promise.resolve(true);
+        },
+        onError: () => {
+            return Promise.resolve(false);
+        }
+    });
+
     readonly studyMetaData = remoteData({
         invoke: async() => client.getStudyUsingGET({studyId: this.studyId})
     });
