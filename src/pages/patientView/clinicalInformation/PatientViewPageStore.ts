@@ -331,39 +331,35 @@ export class PatientViewPageStore {
         invoke: async() => groupBySampleId(this.sampleIds, this.clinicalDataForSamples.result)
     }, []);
 
-    readonly getWholeSlideViewerURLBySample = remoteData({
+    readonly getWholeSlideViewerURL = remoteData({
         await: () => [this.clinicalDataGroupedBySample],
         invoke: () => {
             const clinicalData = this.clinicalDataGroupedBySample.result!;
             const clinicalAttributeId = "COMP_PATH_WSV_URL";
             if (clinicalData) {
-                const wholeSlideData = _.flatten(_.map(clinicalData, (data) => {
-                    return _.map(data.clinicalData, (attribute) => {
-                        if (attribute.clinicalAttributeId === clinicalAttributeId) {
-                            return attribute.value;
-                        }
-                        return null;
-                    })
-                })).filter(function (el) {
-                    return el != null;
-                });
+                const wholeSlideUrls = _.chain(clinicalData)
+                .map((data) => data.clinicalData)
+                .flatten()
+                .map((attribute) => {return attribute.clinicalAttributeId === clinicalAttributeId ? attribute.value : null})
+                .filter((url) => url !== null)
+                .value();
                 
                 const ids: string[] = [];
-                _.forEach(wholeSlideData, (data) => {
+                _.forEach(wholeSlideUrls, (data) => {
                     ids.push(data!.substring(data!.indexOf('=') + 1, data!.indexOf('@')));
                 });
 
-                const urlBuilder = ids.length > 1 ? `https://slides-res.mskcc.org/viewer?ids=${ids.join(';')}@annotation=off` : wholeSlideData[0];
-                return wholeSlideData ? Promise.resolve(urlBuilder) : Promise.resolve("");
+                const urlBuilder = ids.length > 1 ? `https://slides-res.mskcc.org/viewer?ids=${ids.join(';')}@annotation=off` : wholeSlideUrls[0];
+                return wholeSlideUrls ? Promise.resolve(urlBuilder) : Promise.resolve("");
             }
             return Promise.resolve("");
         }
     });
 
     readonly isWholeSlideViewerExist = remoteData({
-        await: () => [this.getWholeSlideViewerURLBySample],
+        await: () => [this.getWholeSlideViewerURL],
         invoke: async() => {
-            await request.get(this.getWholeSlideViewerURLBySample.result!);
+            await request.get(this.getWholeSlideViewerURL.result!);
             return Promise.resolve(true);
         },
         onError: () => {

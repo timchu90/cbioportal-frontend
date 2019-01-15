@@ -505,12 +505,12 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                         </div>
                     </MSKTab>
 
-                    {(patientViewPageStore.getWholeSlideViewerURLBySample.isComplete === true && patientViewPageStore.getWholeSlideViewerURLBySample.result && patientViewPageStore.isWholeSlideViewerExist.isComplete) && (
+                    {(patientViewPageStore.getWholeSlideViewerURL.isComplete === true && patientViewPageStore.getWholeSlideViewerURL.result && patientViewPageStore.isWholeSlideViewerExist.isComplete) && (
                     <MSKTab key={6} id="MSKTissueImage" linkText="Tissue Image"
                             hide={patientViewPageStore.studyId !== "mskimpact" || !patientViewPageStore.isWholeSlideViewerExist.result}
                     >
                         <div style={{position: "relative"}}>
-                            <IFrameLoader height={700} url={ patientViewPageStore.getWholeSlideViewerURLBySample.result } />
+                            <IFrameLoader height={700} url={ patientViewPageStore.getWholeSlideViewerURL.result } />
                         </div>
                     </MSKTab>
                     )}
