@@ -88,7 +88,7 @@ jobs:
           command: |
             ./node_modules/http-server/bin/http-server --cors dist/ -p 3000 & \
             cd end-to-end-tests && \
-            yarn install && \
+            yarn install --frozen-lockfile && \
             ./node_modules/webdriver-manager/bin/webdriver-manager update --versions.chrome '2.42' && \
             ./node_modules/webdriver-manager/bin/webdriver-manager start --versions.chrome '2.42' & \
             ./scripts/env_vars.sh && \
