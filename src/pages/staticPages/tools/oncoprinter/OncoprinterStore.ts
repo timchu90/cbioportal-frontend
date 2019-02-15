@@ -186,13 +186,7 @@ export default class OncoprinterStore {
     });
 
     readonly oncoKbAnnotatedGenes = remoteData({
-        invoke: () => {
-            if (AppConfig.serverConfig.show_oncokb) {
-                return fetchOncoKbAnnotatedGenesSuppressErrors();
-            } else {
-                return Promise.resolve({});
-            }
-        }
+        invoke:()=>fetchOncoKbAnnotatedGenesSuppressErrors()
     }, {});
 
     readonly oncoKbData = remoteData<IOncoKbData|Error>({

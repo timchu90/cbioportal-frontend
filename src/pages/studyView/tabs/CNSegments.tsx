@@ -9,23 +9,15 @@ import {calcSegmentTrackHeight, defaultSegmentTrackProps, generateSegmentFeature
 import ProgressIndicator, {IProgressIndicatorItem} from "shared/components/progressIndicator/ProgressIndicator";
 import LoadingIndicator from "shared/components/loadingIndicator/LoadingIndicator";
 import CNSegmentsDownloader from "shared/components/cnSegments/CNSegmentsDownloader";
-import WindowStore from "shared/components/window/WindowStore";
 
 import {StudyViewPageStore, StudyViewPageTabKeyEnum} from "../StudyViewPageStore";
 
 @observer
 export default class CNSegments extends React.Component<{ store: StudyViewPageStore }, {}> {
     @observable renderingComplete = false;
-    @observable segmentTrackMaxHeight: number|undefined;
-
-    constructor(props: {store: StudyViewPageStore})
-    {
-        super(props);
-        this.segmentTrackMaxHeight = WindowStore.size.height * 0.7;
-    }
 
     @computed get segmentTrackHeight() {
-        return calcSegmentTrackHeight(this.features, this.segmentTrackMaxHeight);
+        return calcSegmentTrackHeight(this.features);
     }
 
     @computed get features() {
@@ -59,14 +51,9 @@ export default class CNSegments extends React.Component<{ store: StudyViewPageSt
                 promises: [this.activePromise]
             },
             {
-                label: "Rendering"
+                label: "Rendering tracks.."
             }
         ];
-    }
-
-    @computed get hasNoSegmentData()
-    {
-        return this.activePromise.isComplete && (!this.activePromise.result || this.activePromise.result.length === 0);
     }
 
     public render() {
@@ -75,21 +62,18 @@ export default class CNSegments extends React.Component<{ store: StudyViewPageSt
                 <LoadingIndicator isLoading={this.isHidden} size={"big"} center={true}>
                     <ProgressIndicator getItems={() => this.progressItems} show={this.isHidden} sequential={true}/>
                 </LoadingIndicator>
-                <div style={{marginBottom: 15, marginLeft: 15}}>
+                <div style={{marginBottom: 15}}>
                     <span>
-                        {this.hasNoSegmentData ? "No segmented" : "Segmented"} copy-number data for the selected {
-                            this.props.store.selectedSamples.result && this.props.store.selectedSamples.result.length
-                        } sample(s).
+                        <b>Whole Genome</b> Copy Number Segments for the selected
+                        <b> {this.props.store.selectedSamples.result && this.props.store.selectedSamples.result.length} </b>
+                        sample(s).
                     </span>
-                    {
-                        !this.hasNoSegmentData &&
-                        <CNSegmentsDownloader
-                            promise={this.activePromise}
-                            filename={this.filename}
-                        />
-                    }
+                    <CNSegmentsDownloader
+                        promise={this.activePromise}
+                        filename={this.filename}
+                    />
                 </div>
-                <div style={this.isHidden || this.hasNoSegmentData ? {opacity: 0} : undefined}>
+                <div style={this.isHidden ? {opacity: 0} : undefined}>
                     <IntegrativeGenomicsViewer
                         tracks={[
                             {

@@ -9,41 +9,14 @@ import ReactSelect from "react-select";
 import _ from "lodash";
 import {
     getAxisDescription,
-    getAxisLabel,
-    IScatterPlotData,
-    isNumberData,
-    isStringData,
-    logScalePossible,
-    makeAxisDataPromise,
-    makeScatterPlotData,
-    makeScatterPlotPointAppearance,
-    dataTypeDisplayOrder,
-    dataTypeToDisplayType,
-    scatterPlotTooltip,
-    scatterPlotLegendData,
-    IStringAxisData,
-    INumberAxisData,
-    makeBoxScatterPlotData,
-    IScatterPlotSampleData,
-    noMutationAppearance,
-    IBoxScatterPlotPoint,
-    boxPlotTooltip,
-    getCnaQueries,
-    getMutationQueries,
-    getScatterPlotDownloadData,
-    getBoxPlotDownloadData,
-    mutationRenderPriority,
-    mutationSummaryRenderPriority,
-    MutationSummary,
-    mutationSummaryToAppearance,
-    CNA_STROKE_WIDTH,
-    PLOT_SIDELENGTH,
-    CLIN_ATTR_DATA_TYPE,
-    sortMolecularProfilesForDisplay,
-    scatterPlotZIndexSortBy,
-    getMutationProfileDuplicateSamplesReport,
-    GENESET_DATA_TYPE,
-    makeClinicalAttributeOptions
+    getAxisLabel, IScatterPlotData, isNumberData, isStringData, logScalePossible,
+    makeAxisDataPromise, makeScatterPlotData, makeScatterPlotPointAppearance, dataTypeDisplayOrder,
+    dataTypeToDisplayType, scatterPlotTooltip, scatterPlotLegendData, IStringAxisData, INumberAxisData,
+    makeBoxScatterPlotData, IScatterPlotSampleData, noMutationAppearance, IBoxScatterPlotPoint, boxPlotTooltip,
+    getCnaQueries, getMutationQueries, getScatterPlotDownloadData, getBoxPlotDownloadData,
+    mutationRenderPriority, mutationSummaryRenderPriority, MutationSummary, mutationSummaryToAppearance,
+    CNA_STROKE_WIDTH, PLOT_SIDELENGTH, CLIN_ATTR_DATA_TYPE,
+    sortMolecularProfilesForDisplay, scatterPlotZIndexSortBy, getMutationProfileDuplicateSamplesReport, GENESET_DATA_TYPE
 } from "./PlotsTabUtils";
 import {
     ClinicalAttribute, MolecularProfile, Mutation,
@@ -63,7 +36,7 @@ import setWindowVariable from "../../../shared/lib/setWindowVariable";
 import autobind from "autobind-decorator";
 import fileDownload from 'react-file-download';
 import onMobxPromise from "../../../shared/lib/onMobxPromise";
-import {SpecialAttribute} from "../../../shared/cache/ClinicalDataCache";
+import {SpecialAttribute} from "../../../shared/cache/OncoprintClinicalDataCache";
 import OqlStatusBanner from "../../../shared/components/oqlStatusBanner/OqlStatusBanner";
 import ScrollBar from "../../../shared/components/Scrollbar/ScrollBar";
 import {scatterPlotSize} from "../../../shared/components/plots/PlotUtils";
@@ -611,7 +584,34 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
 
     readonly clinicalAttributeOptions = remoteData({
         await:()=>[this.props.store.clinicalAttributes],
-        invoke:()=>Promise.resolve(makeClinicalAttributeOptions(this.props.store.clinicalAttributes.result!))
+        invoke:()=>{
+
+            let _clinicalAttributes = _.sortBy<ClinicalAttribute>(this.props.store.clinicalAttributes.result!,
+                [(o: any)=>-o.priority, (o: any)=>o.label]).map(attribute=>(
+                {
+                    value: attribute.clinicalAttributeId,
+                    label: attribute.displayName,
+                    priority: attribute.priority
+                }
+            ));
+
+            // to load more quickly, only filter and annotate with data availability once its ready
+            // TODO: temporarily disabled because cant figure out a way right now to make this work nicely
+            /*if (this.props.store.clinicalAttributeIdToAvailableSampleCount.isComplete) {
+                const sampleCounts = this.props.store.clinicalAttributeIdToAvailableSampleCount.result!;
+                _clinicalAttributes = _clinicalAttributes.filter(option=>{
+                    const count = sampleCounts[option.value];
+                    if (!count) {
+                        return false;
+                    } else {
+                        option.label = `${option.label} (${count} samples)`;
+                        return true;
+                    }
+                });
+            }*/
+
+            return Promise.resolve(_clinicalAttributes);
+        }
     });
 
     readonly dataTypeOptions = remoteData<{value:string, label:string}[]>({

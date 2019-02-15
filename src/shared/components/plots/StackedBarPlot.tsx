@@ -3,7 +3,7 @@ import {Observer, observer} from "mobx-react";
 import {IStringAxisData} from "../../../pages/resultsView/plots/PlotsTabUtils";
 import {computed, observable} from "mobx";
 import {bind} from "bind-decorator";
-import CBIOPORTAL_VICTORY_THEME, {axisTickLabelStyles, baseLabelStyles} from "../../theme/cBioPoralTheme";
+import CBIOPORTAL_VICTORY_THEME, {axisTickLabelStyles} from "../../theme/cBioPoralTheme";
 import {getTextWidth} from "../../lib/wrapText";
 import autobind from "autobind-decorator";
 import _ from "lodash";
@@ -52,15 +52,12 @@ export default class StackedBarPlot extends React.Component<IStackedBarPlotProps
     @observable.ref tooltipModel:any|null = null;
     @observable pointHovered:boolean = false;
     private mouseEvents:any = this.makeMouseEvents();
-    private legendClassName:string = `stacked-bar-plot-legend-${Math.random()}`;
-    @observable computedLegendWidth = 0;
 
     @observable.ref private container:HTMLDivElement;
 
     @bind
     private containerRef(container:HTMLDivElement) {
         this.container = container;
-        this.updateLegendWidth();
     }
 
     @computed get getColor() {
@@ -126,31 +123,19 @@ export default class StackedBarPlot extends React.Component<IStackedBarPlotProps
     }
 
     @computed get chartWidth() {
-        let specifiedWidth:number;
         if (this.props.horizontalBars) {
-            specifiedWidth = this.props.chartBase;
+            return this.props.chartBase;
         } else {
-            specifiedWidth = this.chartExtent;
+            return this.chartExtent;
         }
-
-        return Math.max(
-            specifiedWidth,
-            getTextWidth(this.props.axisLabelX || "", baseLabelStyles.fontFamily, baseLabelStyles.fontSize+"px")
-        ); // make sure theres enough room for the x-axis label
     }
 
     @computed get chartHeight() {
-        let specifiedWidth:number;
         if (this.props.horizontalBars) {
-            specifiedWidth = this.chartExtent;
+            return this.chartExtent;
         } else {
-            specifiedWidth = this.props.chartBase;
+            return this.props.chartBase;
         }
-
-        return Math.max(
-            specifiedWidth,
-            getTextWidth(this.props.axisLabelY || "", baseLabelStyles.fontFamily, baseLabelStyles.fontSize+"px")
-        ); // make sure theres enough room for the y-axis label
     }
 
     @computed get sideLegendX() {
@@ -158,10 +143,8 @@ export default class StackedBarPlot extends React.Component<IStackedBarPlotProps
     }
 
     @computed get legendLocation() {
-        if ((this.props.legendLocationWidthThreshold !== undefined &&
-            this.chartWidth > this.props.legendLocationWidthThreshold) // move to bottom if chart width is too large, leaving no room for legend on the side
-            || (this.legendData.length > 15) // move to bottom if legend is too long, making it run off the screen
-        ) {
+        if (this.props.legendLocationWidthThreshold !== undefined &&
+            this.chartWidth > this.props.legendLocationWidthThreshold) {
             return "bottom";
         } else {
             return "right";
@@ -202,7 +185,6 @@ export default class StackedBarPlot extends React.Component<IStackedBarPlotProps
                     data={this.legendData}
                     x={this.legendLocation === "right" ? this.sideLegendX : 0}
                     y={this.legendLocation === "right" ? 100 : this.svgHeight-this.bottomLegendHeight}
-                    groupComponent={<g className={this.legendClassName}/>}
                 />
             );
         } else {
@@ -393,10 +375,9 @@ export default class StackedBarPlot extends React.Component<IStackedBarPlotProps
     @computed get rightPadding() {
         if (this.legendData.length > 0 && this.legendLocation === "right") {
             // make room for legend
-            return this.biggestLegendLabelWidth + 20;
+            return Math.max(RIGHT_GUTTER, RIGHT_PADDING_FOR_LONG_LABELS);
         } else {
-            // make room for legend at bottom
-            return Math.max(RIGHT_PADDING_FOR_LONG_LABELS, this.computedLegendWidth - this.chartWidth);
+            return RIGHT_PADDING_FOR_LONG_LABELS;
         }
     }
 
@@ -414,12 +395,6 @@ export default class StackedBarPlot extends React.Component<IStackedBarPlotProps
         }
 
         return paddingForLabels + paddingForLegend;
-    }
-
-    @computed get biggestLegendLabelWidth() {
-        return Math.max(
-            ...this.legendData.map(x=>getTextWidth(x.name, baseLabelStyles.fontFamily, baseLabelStyles.fontSize+"px"))
-        );
     }
 
     @computed get biggestCategoryLabelSize() {
@@ -578,18 +553,6 @@ export default class StackedBarPlot extends React.Component<IStackedBarPlotProps
         }
     }
 
-    private updateLegendWidth() {
-        if(this.container) {
-            const legend = this.container.getElementsByClassName(this.legendClassName).item(0);
-            if (legend) {
-                this.computedLegendWidth = legend.getBoundingClientRect().width;
-            }
-        }
-    }
-
-    componentDidUpdate(){
-        this.updateLegendWidth();
-    }
 
     render() {
         if (!this.data.length) {

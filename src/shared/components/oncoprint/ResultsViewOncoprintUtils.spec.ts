@@ -2,7 +2,7 @@ import {assert} from "chai";
 import {GenePanelData, MolecularProfile} from "../../api/generated/CBioPortalAPI";
 import {AlterationTypeConstants} from "../../../pages/resultsView/ResultsViewPageStore";
 import {alterationTypeToProfiledForText, makeProfiledInClinicalAttributes} from "./ResultsViewOncoprintUtils";
-import {SpecialAttribute} from "../../cache/ClinicalDataCache";
+import {SpecialAttribute} from "../../cache/OncoprintClinicalDataCache";
 
 describe("ResultsViewOncoprintUtils",()=>{
     describe("makeProfiledInClinicalAttributes", ()=>{

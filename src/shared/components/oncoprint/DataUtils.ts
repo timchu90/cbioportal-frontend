@@ -19,9 +19,10 @@ import {isSample, isSampleList} from "../../lib/CBioPortalAPIUtils";
 import {getSimplifiedMutationType, SimplifiedMutationType} from "../../lib/oql/AccessorsForOqlFilter";
 import _ from "lodash";
 import {MutationSpectrum} from "../../api/generated/CBioPortalAPIInternal";
-import {CoverageInformation, ExtendedClinicalAttribute} from "../../../pages/resultsView/ResultsViewPageStoreUtils";
+import {OncoprintClinicalAttribute} from "./ResultsViewOncoprint";
+import {CoverageInformation} from "../../../pages/resultsView/ResultsViewPageStoreUtils";
 import { MUTATION_STATUS_GERMLINE } from "shared/constants";
-import {SpecialAttribute} from "../../cache/ClinicalDataCache";
+import {SpecialAttribute} from "../../cache/OncoprintClinicalDataCache";
 import {stringListToIndexSet} from "../../lib/StringUtils";
 import {isNotGermlineMutation} from "../../lib/MutationUtils";
 
@@ -347,7 +348,7 @@ export function makeHeatmapTrackData<T extends IBaseHeatmapTrackDatum, K extends
 
 function fillNoDataValue(
     trackDatum:Partial<ClinicalTrackDatum>,
-    attribute:ExtendedClinicalAttribute,
+    attribute:OncoprintClinicalAttribute,
 ) {
     if (attribute.clinicalAttributeId === "MUTATION_COUNT") {
         trackDatum.attr_val = 0;
@@ -357,7 +358,7 @@ function fillNoDataValue(
 }
 export function fillClinicalTrackDatum(
     trackDatum:Partial<ClinicalTrackDatum>,
-    attribute:ExtendedClinicalAttribute,
+    attribute:OncoprintClinicalAttribute,
     case_:Sample|Patient,
     data?:(ClinicalData|MutationSpectrum)[],
 ) {

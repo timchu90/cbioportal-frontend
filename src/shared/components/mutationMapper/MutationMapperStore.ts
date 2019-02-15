@@ -90,11 +90,9 @@ export default class MutationMapperStore
                     return this.getMutations();
                 }
             } else {
-                try {
-                    if (this.activeTranscript === undefined) {
-                        this.activeTranscript = canonicalTranscriptId;
-                    }
-                } catch (ex) {}
+                if (this.activeTranscript === undefined) {
+                    this.activeTranscript = canonicalTranscriptId;
+                }
                 return this.getMutations();
             }
         }

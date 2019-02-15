@@ -4,7 +4,6 @@ import * as _ from "lodash";
 import {Mutation} from "shared/api/generated/CBioPortalAPI";
 import {IndicatorQueryResp} from "shared/api/generated/OncoKbAPI";
 import {IOncoKbData} from "shared/model/OncoKB";
-import {LEVELS} from "shared/lib/OncoKbUtils";
 import OncoKbSummaryTable from "./OncoKbSummaryTable";
 
 type OncoKbTrackTooltipProps = {
@@ -47,11 +46,12 @@ export function oncoKbTooltip(mutations: Mutation[], indicatorData: IndicatorQue
         count: groupedByProteinChange[proteinChange].length,
         proteinChange: proteinChange,
         clinicalImplication: _.uniq(groupedByProteinChange[proteinChange]
-            .map(indicator => indicator.oncogenic ? indicator.oncogenic : "Unknown")),
+            .map(indicator => indicator.oncogenic ? indicator.oncogenic : "Unknown"))
+            .join(", "),
         biologicalEffect: _.uniq(groupedByProteinChange[proteinChange]
             .map(indicator => indicator.mutationEffect && indicator.mutationEffect.knownEffect ?
-                indicator.mutationEffect.knownEffect : "Unknown")),
-        level: generateLevelData(groupedByProteinChange[proteinChange])
+                indicator.mutationEffect.knownEffect : "Unknown"))
+            .join(", ")
     }));
 
     // generate the tooltip
@@ -62,25 +62,6 @@ export function oncoKbTooltip(mutations: Mutation[], indicatorData: IndicatorQue
             <OncoKbSummaryTable data={tableData} />
         </span>
     );
-}
-
-export function generateLevelData(indicatorData: IndicatorQueryResp[])
-{
-    const levels: {[level: string]: string[]} = {};
-
-    indicatorData.forEach(indicator => {
-        indicator.treatments.forEach(treatment => {
-            const parts = treatment.level.split("_");
-            const level = parts.length === 2 ? parts[1] : treatment.level;
-
-            levels[level] = levels[level] || [];
-            levels[level].push(indicator.query.tumorType);
-        });
-    });
-
-    return _.keys(levels)
-        .sort((a, b) => LEVELS.all.indexOf(a) > LEVELS.all.indexOf(b) ? -1 : 1)
-        .map(level => ({level: level, tumorTypes: _.uniq(levels[level])}));
 }
 
 export default class OncoKbTrackTooltip extends React.Component<OncoKbTrackTooltipProps, {}>

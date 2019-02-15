@@ -55,7 +55,7 @@ async function fetchForStudy(queries:Query[], studyId:string, molecularProfileId
         throw err;
     }
 }
-export function fetch(queries:Query[], studyToMolecularProfileDiscrete:{[studyId:string]:MolecularProfile}):Promise<AugmentedData<DiscreteCopyNumberData, string>[]> {
+function fetch(queries:Query[], studyToMolecularProfileDiscrete:{[studyId:string]:MolecularProfile}):Promise<AugmentedData<DiscreteCopyNumberData, string>[]> {
     if (!studyToMolecularProfileDiscrete) {
         throw "No study to molecular profile id map given";
     } else {

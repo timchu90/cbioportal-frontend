@@ -106,7 +106,7 @@ export class ChartHeader extends React.Component<IChartHeaderProps, {}> {
                     placement="bottom"
                     overlay={overlay}
                     destroyTooltipOnHide={true}
-                    onVisibleChange={this.onTooltipVisibleChange}
+                    onVisibleChange={this.onTooltipVisibleChange as any}
                     trigger={["click"]}
                     getTooltipContainer={(...args:any[])=>{
                         // this weirdness is necessary to fix broken type

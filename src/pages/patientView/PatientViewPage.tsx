@@ -12,7 +12,7 @@ import SignificantMutationalSignatures from "./patientHeader/SignificantMutation
 import {PaginationControls} from "../../shared/components/paginationControls/PaginationControls";
 import {IColumnVisibilityDef} from "shared/components/columnVisibilityControls/ColumnVisibilityControls";
 import {toggleColumnVisibility} from "shared/components/lazyMobXTable/ColumnVisibilityResolver";
-import {parseCohortIds, PatientViewPageStore} from "./clinicalInformation/PatientViewPageStore";
+import {PatientViewPageStore} from "./clinicalInformation/PatientViewPageStore";
 import ClinicalInformationPatientTable from "./clinicalInformation/ClinicalInformationPatientTable";
 import ClinicalInformationSamples from "./clinicalInformation/ClinicalInformationSamplesTable";
 import {inject, observer} from "mobx-react";
@@ -84,7 +84,6 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
 
         super();
 
-
         //TODO: this should be done by a module so that it can be reused on other pages
         const reaction1 = reaction(
             () => [props.routing.location.query, props.routing.location.hash, props.routing.location.pathname],
@@ -114,7 +113,10 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                     // if there is a navCaseId list in url
                     const navCaseIdMatch = hash.match(/navCaseIds=([^&]*)/);
                     if (navCaseIdMatch && navCaseIdMatch.length > 1) {
-                        patientViewPageStore.patientIdsInCohort = parseCohortIds(navCaseIdMatch[1]);
+                        const navCaseIds = navCaseIdMatch[1].split(',');
+                        patientViewPageStore.patientIdsInCohort = navCaseIds.map((entityId:string)=>{
+                            return entityId.includes(':') ? entityId : patientViewPageStore.studyId + ':' + entityId;
+                        });
                     }
 
                 } else {
@@ -319,7 +321,7 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
         }
 
         return (
-            <PageLayout noMargin={true} hideFooter={true}>
+            <PageLayout noMargin={true}>
                 {
                     (patientViewPageStore.patientViewData.isComplete) && (
                         <Helmet>
@@ -410,12 +412,11 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                                         )
                                     }
 
-                                    <LoadingIndicator isLoading={patientViewPageStore.mutationData.isPending || patientViewPageStore.uncalledMutationData.isPending || patientViewPageStore.oncoKbAnnotatedGenes.isPending || patientViewPageStore.studyIdToStudy.isPending} />
+                                    <LoadingIndicator isLoading={patientViewPageStore.mutationData.isPending || patientViewPageStore.uncalledMutationData.isPending || patientViewPageStore.oncoKbAnnotatedGenes.isPending} />
 
                                     {
-                                        (patientViewPageStore.oncoKbAnnotatedGenes.isComplete && patientViewPageStore.mutationData.isComplete && patientViewPageStore.uncalledMutationData.isComplete && !!sampleManager && patientViewPageStore.studyIdToStudy.isComplete) && (
+                                        (patientViewPageStore.oncoKbAnnotatedGenes.isComplete && patientViewPageStore.mutationData.isComplete && patientViewPageStore.uncalledMutationData.isComplete && !!sampleManager) && (
                                             <PatientViewMutationTable
-                                                studyIdToStudy={patientViewPageStore.studyIdToStudy.result}
                                                 sampleManager={sampleManager}
                                                 sampleIds={sampleManager ? sampleManager.getSampleIdsInOrder() : []}
                                                 uniqueSampleKeyToTumorType={patientViewPageStore.uniqueSampleKeyToTumorType}
@@ -455,36 +456,31 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
 
                                     <hr />
 
-                                    <LoadingIndicator isLoading={(this.cnaTableStatus === 'loading' || patientViewPageStore.studyIdToStudy.isPending)} />
+                                    <LoadingIndicator isLoading={(this.cnaTableStatus === 'loading')} />
 
-                                    {
-                                        (patientViewPageStore.studyIdToStudy.isComplete) && (
-                                            <CopyNumberTableWrapper
-                                            studyIdToStudy={patientViewPageStore.studyIdToStudy.result}
-                                            sampleIds={sampleManager ? sampleManager.getSampleIdsInOrder() : []}
-                                            sampleManager={sampleManager}
-                                            cnaOncoKbData={patientViewPageStore.cnaOncoKbData}
-                                            cnaCivicGenes={patientViewPageStore.cnaCivicGenes}
-                                            cnaCivicVariants={patientViewPageStore.cnaCivicVariants}
-                                            oncoKbEvidenceCache={patientViewPageStore.oncoKbEvidenceCache}
-                                            oncoKbAnnotatedGenes={patientViewPageStore.oncoKbAnnotatedGenes.result}
-                                            enableOncoKb={AppConfig.serverConfig.show_oncokb}
-                                            enableCivic={AppConfig.serverConfig.show_civic}
-                                            userEmailAddress={AppConfig.serverConfig.user_email_address}
-                                            pubMedCache={patientViewPageStore.pubMedCache}
-                                            data={patientViewPageStore.mergedDiscreteCNAData}
-                                            copyNumberCountCache={patientViewPageStore.copyNumberCountCache}
-                                            mrnaExprRankCache={patientViewPageStore.mrnaExprRankCache}
-                                            gisticData={patientViewPageStore.gisticData.result}
-                                            mrnaExprRankMolecularProfileId={patientViewPageStore.mrnaRankMolecularProfileId.result || undefined}
-                                            status={this.cnaTableStatus}
-                                            columnVisibility={this.cnaTableColumnVisibility}
-                                            columnVisibilityProps={{
-                                                onColumnToggled: this.onCnaTableColumnVisibilityToggled
-                                            }}
-                                        />
-                                        )
-                                    }
+                                    <CopyNumberTableWrapper
+                                        sampleIds={sampleManager ? sampleManager.getSampleIdsInOrder() : []}
+                                        sampleManager={sampleManager}
+                                        cnaOncoKbData={patientViewPageStore.cnaOncoKbData}
+                                        cnaCivicGenes={patientViewPageStore.cnaCivicGenes}
+                                        cnaCivicVariants={patientViewPageStore.cnaCivicVariants}
+                                        oncoKbEvidenceCache={patientViewPageStore.oncoKbEvidenceCache}
+                                        oncoKbAnnotatedGenes={patientViewPageStore.oncoKbAnnotatedGenes.result}
+                                        enableOncoKb={AppConfig.serverConfig.show_oncokb}
+                                        enableCivic={AppConfig.serverConfig.show_civic}
+                                        userEmailAddress={AppConfig.serverConfig.user_email_address}
+                                        pubMedCache={patientViewPageStore.pubMedCache}
+                                        data={patientViewPageStore.mergedDiscreteCNAData}
+                                        copyNumberCountCache={patientViewPageStore.copyNumberCountCache}
+                                        mrnaExprRankCache={patientViewPageStore.mrnaExprRankCache}
+                                        gisticData={patientViewPageStore.gisticData.result}
+                                        mrnaExprRankMolecularProfileId={patientViewPageStore.mrnaRankMolecularProfileId.result || undefined}
+                                        status={this.cnaTableStatus}
+                                        columnVisibility={this.cnaTableColumnVisibility}
+                                        columnVisibilityProps={{
+                                            onColumnToggled: this.onCnaTableColumnVisibilityToggled
+                                        }}
+                                    />
                                 </MSKTab>
 
                         {(patientViewPageStore.pageMode === 'patient') && (
@@ -521,15 +517,15 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                             hide={!this.shouldShowPathologyReport(patientViewPageStore)}
                     >
                         <div>
-                            <PathologyReport iframeHeight={WindowStore.size.height - 220} pdfs={patientViewPageStore.pathologyReport.result} />
+                            <PathologyReport iframeStyle={{position:"absolute", top:0}} pdfs={patientViewPageStore.pathologyReport.result} />
                         </div>
                     </MSKTab>
 
                     <MSKTab key={5} id="tissueImage" linkText="Tissue Image"
                             hide={this.hideTissueImageTab()}
                     >
-                        <div>
-                            <IFrameLoader height={WindowStore.size.height - 220} url={  getDigitalSlideArchiveIFrameUrl(patientViewPageStore.patientId) } />
+                        <div style={{position: "relative"}}>
+                            <IFrameLoader height={700} url={  getDigitalSlideArchiveIFrameUrl(patientViewPageStore.patientId) } />
                         </div>
                     </MSKTab>
 
@@ -537,8 +533,8 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                     <MSKTab key={6} id="MSKTissueImage" linkText="Tissue Image"
                             unmountOnHide = {false}
                     >
-                        <div>
-                            <IFrameLoader height={WindowStore.size.height - 220} url={ this.wholeSlideViewerUrl.result! } />
+                        <div style={{position: "relative"}}>
+                            <IFrameLoader height={700} url={ this.wholeSlideViewerUrl.result! } />
                         </div>
                     </MSKTab>
                     )}

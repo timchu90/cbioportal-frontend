@@ -28,7 +28,7 @@ export default class EllipsisTextTooltip extends React.Component<{ text:string }
     render(){
         return <DefaultTooltip overlay={<span>{this.props.text}</span>}
                                visible={this.tooltipVisible}
-                               onVisibleChange={(this.onVisibleChange)}
+                               onVisibleChange={(this.onVisibleChange as any)}
         >
             <span className={styles.text} ref={this.setRef}>{this.props.text}</span>
         </DefaultTooltip>

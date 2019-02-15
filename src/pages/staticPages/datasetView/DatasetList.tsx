@@ -4,9 +4,7 @@ import {CancerStudy} from 'shared/api/generated/CBioPortalAPI';
 import {ThreeBounce} from 'better-react-spinkit';
 import request from 'superagent';
 import LazyMobXTable from "shared/components/lazyMobXTable/LazyMobXTable";
-import {getNCBIlink, getStudyDownloadListUrl} from "../../../shared/api/urls";
-import {StudyLink} from "../../../shared/components/StudyLink/StudyLink";
-import {StudyDataDownloadLink} from "../../../shared/components/StudyDataDownloadLink/StudyDataDownloadLink";
+import {getStudyDownloadListUrl, getStudySummaryUrl} from "../../../shared/api/urls";
 
 
 interface IDataTableRow {
@@ -53,7 +51,14 @@ class CancerStudyCell extends React.Component<ICancerStudyCellProps,{}> {
 
     render() {
         return (
-            <StudyLink studyId={this.props.studyId}>{this.props.name}</StudyLink>
+            <span>
+                <a
+                    href={getStudySummaryUrl(this.props.studyId)}
+                    target='_blank'
+                >
+                    {this.props.name}
+                </a>
+            </span>
         );
 
     }
@@ -65,7 +70,7 @@ class ReferenceCell extends React.Component<IReferenceCellProps ,{}> {
     render() {
         return (
             <a target='_blank'
-               href={getNCBIlink(`/pubmed/${this.props.pmid}`)}> {this.props.citation} </a>
+               href={`https://www.ncbi.nlm.nih.gov/pubmed/${this.props.pmid}`}> {this.props.citation} </a>
         );
 
     }
@@ -127,26 +132,24 @@ export default class DataSetsPageTable extends React.Component <IDataSetsTablePr
                                     type: 'name',
                                     render:(data:IDataTableRow)=> <CancerStudyCell studyId={data.studyId} name={data.name}/>,
                                     filter:(data:any, filterString:string, filterStringUpper:string) => {
-                                        return data.name.toUpperCase().includes(filterStringUpper);
+                                        return data.name.toUpperCase().indexOf(filterStringUpper) > -1;
                                      }
 
                                 },
+                                {name:'', sortBy:false, togglable:false, download: false, type:'download', render:(data:IDataTableRow)=> {
+                                    const download = this.state.downloadable.indexOf(data.studyId) > -1;
+                                    return (
+                                        <a className="dataset-table-download-link" style={download ? {display:'block'} : {display:'none'}}
+                                           href={'http://download.cbioportal.org/' + data.studyId + '.tar.gz'} download>
+                                            <i className='fa fa-download'/>
+                                        </a>
+                                    );
+                                }},
                                 {
-                                    name: '', sortBy: false, togglable: false, download: false, type: 'download',
-                                    render: (data: IDataTableRow) => {
-                                        const studyIsDownloadable = this.state.downloadable.includes(data.studyId);
-                                        if (studyIsDownloadable) {
-                                            return <StudyDataDownloadLink studyId={data.studyId}/>;
-                                        } else {
-                                            return null;
-                                        }
-                                    }
-                                },
-                                {
-                                    name: 'Reference',
+                                    name:'Reference',
                                     type: 'citation', render:(data:IDataTableRow)=><ReferenceCell pmid={data.pmid} citation={data.citation}/>,
                                      filter:(data:any, filterString:string, filterStringUpper:string) => {
-                                        return data.citation.toUpperCase().includes(filterStringUpper);
+                                        return data.citation.toUpperCase().indexOf(filterStringUpper) > -1;
                                      }
 
                                 },

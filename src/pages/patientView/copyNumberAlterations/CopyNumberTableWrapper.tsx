@@ -2,7 +2,7 @@ import * as React from 'react';
 import {observer} from "mobx-react";
 import * as _ from 'lodash';
 import LazyMobXTable from "shared/components/lazyMobXTable/LazyMobXTable";
-import {CancerStudy, DiscreteCopyNumberData} from "shared/api/generated/CBioPortalAPI";
+import {DiscreteCopyNumberData} from "shared/api/generated/CBioPortalAPI";
 import {Column} from "shared/components/lazyMobXTable/LazyMobXTable";
 import MrnaExprColumnFormatter from "shared/components/mutationTable/column/MrnaExprColumnFormatter";
 import {IColumnVisibilityControlsProps} from "shared/components/columnVisibilityControls/ColumnVisibilityControls";
@@ -26,7 +26,6 @@ class CNATableComponent extends LazyMobXTable<DiscreteCopyNumberData[]> {
 type CNATableColumn = Column<DiscreteCopyNumberData[]>&{order:number};
 
 type ICopyNumberTableWrapperProps = {
-    studyIdToStudy?: {[studyId:string]:CancerStudy};
     sampleIds:string[];
     sampleManager:SampleManager|null;
     cnaOncoKbData?: IOncoKbDataWrapper;
@@ -108,8 +107,7 @@ export default class CopyNumberTableWrapper extends React.Component<ICopyNumberT
                 enableCivic: this.props.enableCivic as boolean,
                 enableMyCancerGenome: false,
                 enableHotspot: false,
-                userEmailAddress: this.props.userEmailAddress,
-                studyIdToStudy: this.props.studyIdToStudy
+                userEmailAddress: this.props.userEmailAddress
             })),
             sortBy:(d:DiscreteCopyNumberData[])=>{
                 return AnnotationColumnFormatter.sortValue(d,

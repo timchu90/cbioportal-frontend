@@ -1,6 +1,7 @@
 import {CoverageInformation} from "../../../pages/resultsView/ResultsViewPageStoreUtils";
 import {ClinicalAttribute, MolecularProfile, Sample} from "../../api/generated/CBioPortalAPI";
-import {SpecialAttribute} from "../../cache/ClinicalDataCache";
+import {OncoprintClinicalAttribute} from "./ResultsViewOncoprint";
+import {SpecialAttribute} from "../../cache/OncoprintClinicalDataCache";
 import _ from "lodash";
 import naturalSort from "javascript-natural-sort";
 import {AlterationTypeConstants} from "../../../pages/resultsView/ResultsViewPageStore";

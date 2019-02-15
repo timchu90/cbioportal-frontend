@@ -28,7 +28,7 @@ export default class TrackSelector extends React.Component<ITrackSelectorProps, 
 
     public static defaultProps:Partial<ITrackSelectorProps> = {
         name: "mutationMapperTrackSelector",
-        placeholder: "Add annotation tracks"
+        placeholder: "Add annotation tracks.."
     };
 
     @computed get onChange() {
@@ -52,7 +52,8 @@ export default class TrackSelector extends React.Component<ITrackSelectorProps, 
                         {this.isPending(TrackNames.CancerHotspots) && this.loaderIcon()}
                     </span>
                 ),
-                value: TrackNames.CancerHotspots
+                value: TrackNames.CancerHotspots,
+                disabled: this.isDisabled(TrackNames.CancerHotspots)
             },
             {
                 label: (
@@ -61,7 +62,8 @@ export default class TrackSelector extends React.Component<ITrackSelectorProps, 
                         {this.isPending(TrackNames.OncoKB) && this.loaderIcon()}
                     </span>
                 ),
-                value: TrackNames.OncoKB
+                value: TrackNames.OncoKB,
+                disabled: this.isDisabled(TrackNames.OncoKB)
             },
             {
                 label: (

@@ -120,7 +120,7 @@ import {
 import {BookmarkLinks} from "../../shared/model/BookmarkLinks";
 import {getBitlyServiceUrl} from "../../shared/api/urls";
 import url from "url";
-import ClinicalDataCache, {SpecialAttribute} from "../../shared/cache/ClinicalDataCache";
+import OncoprintClinicalDataCache, {SpecialAttribute} from "../../shared/cache/OncoprintClinicalDataCache";
 import {getDefaultMolecularProfiles} from "../../shared/lib/getDefaultMolecularProfiles";
 import {getProteinPositionFromProteinChange} from "../../shared/lib/ProteinChangeUtils";
 import {isMutation} from "../../shared/lib/CBioPortalAPIUtils";
@@ -1598,8 +1598,6 @@ export class ResultsViewPageStore {
                         () => (this.mutationsByGene[gene.hugoGeneSymbol] || []),
                         () => (this.mutationCountCache),
                         () => (this.genomeNexusCache),
-                        () => (this.discreteCNACache),
-                        this.studyToMolecularProfileDiscrete.result!,
                         this.studyIdToStudy,
                         this.molecularProfileIdToMolecularProfile,
                         this.clinicalDataForSamples,
@@ -1623,13 +1621,7 @@ export class ResultsViewPageStore {
     }
 
     readonly oncoKbAnnotatedGenes = remoteData({
-        invoke: () => {
-            if (AppConfig.serverConfig.show_oncokb) {
-                return fetchOncoKbAnnotatedGenesSuppressErrors();
-            } else {
-                return Promise.resolve({});
-            }
-        }
+        invoke:()=>fetchOncoKbAnnotatedGenesSuppressErrors()
     }, {});
 
     readonly clinicalDataForSamples = remoteData<ClinicalData[]>({
@@ -2977,7 +2969,25 @@ export class ResultsViewPageStore {
         })
     );
 
-    public clinicalDataCache = new ClinicalDataCache(
+    public clinicalDataCache = new MobxPromiseCache<ClinicalAttribute, ClinicalData[]>(
+        attr=>({
+            await:()=>[
+                this.samples,
+                this.patients
+            ],
+            invoke:()=>client.fetchClinicalDataUsingPOST({
+                clinicalDataType: attr.patientAttribute ? "PATIENT" : "SAMPLE",
+                clinicalDataMultiStudyFilter: {
+                    attributeIds: [attr.clinicalAttributeId],
+                    identifiers: attr.patientAttribute ?
+                        this.patients.result!.map(p=>({entityId:p.patientId, studyId:p.studyId})) :
+                        this.samples.result!.map(s=>({entityId:s.sampleId, studyId:s.studyId}))
+                }
+            })
+        })
+    );
+
+    public oncoprintClinicalDataCache = new OncoprintClinicalDataCache(
         this.samples,
         this.patients,
         this.studyToMutationMolecularProfile,

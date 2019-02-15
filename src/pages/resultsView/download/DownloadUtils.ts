@@ -20,15 +20,6 @@ export interface IDownloadFileRow {
     alterationData: {[gene: string]: string[]};
 }
 
-const mrnaMap:any = {
-    'DOWN': 'LOW',
-    'UP': 'HIGH'
-};
-const proteinMap:any = {
-    'DOWN': 'LOW',
-    'UP': 'HIGH'
-};
-
 export function generateOqlData(datum: GeneticTrackDatum,
                                 geneAlterationDataByGene?: {[gene: string]: IGeneAlteration},
                                 molecularProfileIdToMolecularProfile?: {[molecularProfileId:string]:MolecularProfile}): IOqlData
@@ -59,7 +50,7 @@ export function generateOqlData(datum: GeneticTrackDatum,
             case AlterationTypeConstants.MRNA_EXPRESSION:
                 if (alterationSubType.length > 0) {
                     mrnaExpressions.push({
-                        type: mrnaMap[alterationSubType],
+                        type: alterationSubType,
                         value: alteration.value
                     });
                     alterationTypes.push("EXP");
@@ -68,7 +59,7 @@ export function generateOqlData(datum: GeneticTrackDatum,
             case AlterationTypeConstants.PROTEIN_LEVEL:
                 if (alterationSubType.length > 0) {
                     proteinLevels.push({
-                        type: proteinMap[alterationSubType],
+                        type: alterationSubType,
                         value: alteration.value
                     });
                     alterationTypes.push("PROT");
@@ -153,7 +144,7 @@ export function updateOqlData(datum: GeneticTrackDatum,
     oql.isCnaNotProfiled = isCnaNotProfiled;
     oql.isMrnaExpNotProfiled = isMrnaExpNotProfiled;
     oql.isProteinLevelNotProfiled = isProteinLevelNotProfiled;
-
+    
     return oql;
 }
 
@@ -370,8 +361,7 @@ export function generateCaseAlterationData(
                     sampleId,
                     patientId: sampleIndex[datum.uid] ? sampleIndex[datum.uid].patientId : "",
                     altered: false,
-                    oqlData: {},
-                    oqlDataByGene: {}
+                    oqlData: {}
                 };
 
                 // update altered: a single alteration in any track means altered
@@ -379,18 +369,8 @@ export function generateCaseAlterationData(
 
                 // for each track (for each oql line/gene) the oql data is different
                 // that's why we need a map here
-                const generatedOqlData = generateOqlData(datum, geneAlterationDataByGene, molecularProfileIdToMolecularProfile);
-                //generate and update oqlData in caseAlterationData
-                caseAlterationData[key].oqlData[data.oql.oql_line] = generatedOqlData
+                caseAlterationData[key].oqlData[data.oql.oql_line] = generateOqlData(datum, geneAlterationDataByGene, molecularProfileIdToMolecularProfile);
                 updateOqlData(datum, caseAlterationData[key].oqlData[data.oql.oql_line], molecularProfileIdToMolecularProfile);
-                //generate and update oqlDataByGene in caseAlterationData
-                if (caseAlterationData[key].oqlDataByGene[data.oql.gene] !== undefined) {
-                    caseAlterationData[key].oqlDataByGene[data.oql.gene] = _.merge(generatedOqlData, caseAlterationData[key].oqlDataByGene[data.oql.gene]);
-                }
-                else {
-                    caseAlterationData[key].oqlDataByGene[data.oql.gene] = generatedOqlData;
-                }
-                updateOqlData(datum, caseAlterationData[key].oqlDataByGene[data.oql.gene], molecularProfileIdToMolecularProfile);
             });
         });
     }

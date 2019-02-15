@@ -248,7 +248,7 @@ export default class MutationMapperToolStore
     }
 
     @cached get downloadDataFetcher() {
-        return new MutationTableDownloadDataFetcher(this.mutations, undefined, () => this.genomeNexusCache);
+        return new MutationTableDownloadDataFetcher(this.mutations, () => this.genomeNexusCache);
     }
 
     @action public clearCriticalErrors() {

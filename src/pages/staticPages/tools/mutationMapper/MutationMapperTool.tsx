@@ -9,7 +9,6 @@ import Helmet from "react-helmet";
 
 import Loader from "shared/components/loadingIndicator/LoadingIndicator";
 import {MSKTab, MSKTabs} from "shared/components/MSKTabs/MSKTabs";
-import MutationMapperUserSelectionStore from "shared/components/mutationMapper/MutationMapperUserSelectionStore";
 import {parseInput} from "shared/lib/MutationInputParser";
 
 import StandaloneMutationMapper from "./StandaloneMutationMapper";
@@ -26,8 +25,6 @@ interface IMutationMapperToolProps {
 @observer
 export default class MutationMapperTool extends React.Component<IMutationMapperToolProps, {}>
 {
-    private userSelectionStore: MutationMapperUserSelectionStore;
-
     @observable standaloneMutationMapperGeneTab:string|undefined;
     @observable dataFormatCollapsed = true;
     @observable inputText: string|undefined;
@@ -40,9 +37,6 @@ export default class MutationMapperTool extends React.Component<IMutationMapperT
 
     constructor(props: IMutationMapperToolProps) {
         super(props);
-
-        this.userSelectionStore = new MutationMapperUserSelectionStore();
-
         this.handleTabChange.bind(this);
     }
 
@@ -375,7 +369,6 @@ export default class MutationMapperTool extends React.Component<IMutationMapperT
                     <MSKTab key={gene} id={gene} linkText={gene}>
                         <StandaloneMutationMapper
                             store={mutationMapperStore}
-                            trackVisibility={this.userSelectionStore.trackVisibility}
                             downloadDataFetcher={this.store.downloadDataFetcher}
                             genomeNexusCache={this.store.genomeNexusCache}
                             oncoKbEvidenceCache={this.store.oncoKbEvidenceCache}
