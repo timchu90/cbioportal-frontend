@@ -1,13 +1,12 @@
 import * as React from "react";
 import {Button, Dropdown, ButtonProps} from "react-bootstrap";
 import {RootCloseWrapper} from "react-overlays";
-import classNames from "classnames";
 import {observer} from "mobx-react";
 import {observable} from "mobx";
 
 export interface ICustomDropdownProps extends ButtonProps {
     title: string;
-    className?: string;
+    buttonProps?: ButtonProps;
 }
 
 class CustomButton extends React.Component<any,{}> { // cant type this more specifically because of some typing issues w ES6 classes not having component.replaceState
@@ -23,10 +22,10 @@ class CustomButton extends React.Component<any,{}> { // cant type this more spec
 class CustomMenu extends React.Component<any,{}> {
 
     render() {
-        const { className, children } = this.props;
+        const { children } = this.props;
 
         return (
-            <div className={classNames("dropdown-menu", className)} style={{ padding: '6px' }}>
+            <div className="dropdown-menu" style={{ padding: '6px' }}>
                 {children}
             </div>
         );
@@ -47,12 +46,12 @@ export default class CustomDropdown extends React.Component<ButtonProps, {}> {
     }
 
     render() {
-        const {children, id, className, ...props} = this.props;
+        const {children, id, ...props} = this.props;
         return (
             <RootCloseWrapper onRootClose={this.hide}>
                 <Dropdown id={id+""} open={this.open}>
                     <CustomButton bsStyle="default" bsRole="toggle" title="Custom Toggle" onClick={this.toggle} {...props}/>
-                    <CustomMenu bsRole="menu" className={classNames(className)}>
+                    <CustomMenu bsRole="menu">
                         {children}
                     </CustomMenu>
                 </Dropdown>
