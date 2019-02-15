@@ -13,7 +13,8 @@ export interface IEnrichmentsDataSetDropdownProps {
     dataSets: MobxPromise<MolecularProfile[]>;
     onChange: (molecularProfile: MolecularProfile) => void;
     selectedValue: string;
-    molecularProfileIdToProfiledSampleCount?:MobxPromise<{[molecularProfileId:string]:number}>;
+    // TODO: this might have to be optional (i.e. ?), there was a merge conflict
+    molecularProfileIdToProfiledSampleCount:MobxPromise<{[molecularProfileId:string]:number}>;
 }
 
 @observer
