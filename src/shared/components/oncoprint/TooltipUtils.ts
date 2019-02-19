@@ -8,7 +8,8 @@ import client from "shared/api/cbioportalClientInstance";
 import {ClinicalTrackSpec, GeneticTrackDatum} from "./Oncoprint";
 import {
     AnnotatedExtendedAlteration, AnnotatedMutation, AnnotatedNumericGeneMolecularData,
-    ExtendedAlteration
+    ExtendedAlteration,
+    AlterationTypeConstants
 } from "../../../pages/resultsView/ResultsViewPageStore";
 import _ from "lodash";
 import {alterationTypeToProfiledForText} from "./ResultsViewOncoprintUtils";
@@ -126,14 +127,17 @@ export function makeHeatmapTrackTooltip(genetic_alteration_type:MolecularProfile
         let data_header = '';
         let profile_data = 'N/A';
         switch(genetic_alteration_type) {
-            case "MRNA_EXPRESSION":
+            case AlterationTypeConstants.MRNA_EXPRESSION:
                 data_header = 'MRNA: ';
                 break;
-            case "PROTEIN_LEVEL":
+            case AlterationTypeConstants.PROTEIN_LEVEL:
                 data_header = 'PROT: ';
                 break;
-            case "METHYLATION":
+            case AlterationTypeConstants.METHYLATION:
                 data_header = 'METHYLATION: ';
+                break;
+            case AlterationTypeConstants.TREATMENT_RESPONSE:
+                data_header = 'TREATMENT: ';
                 break;
         }
         let profileDataSum = 0;
@@ -149,6 +153,9 @@ export function makeHeatmapTrackTooltip(genetic_alteration_type:MolecularProfile
             if (profileDataCount > 1) {
                 profile_data = `${profile_data} (average of ${profileDataCount} values)`;
             }
+        }
+        if ((d.profile_data !== null) && (typeof d.profile_data !== "undefined")) {
+            profile_data = d.category || d.profile_data.toFixed(2);
         }
         let ret = data_header + '<b>' + profile_data + '</b><br/>';
         return $('<div>').addClass(TOOLTIP_DIV_CLASS).append(getCaseViewElt(dataUnderMouse, !!link_id)).append("<br/>").append(ret);
