@@ -6,11 +6,16 @@ set -o pipefail # pipes fail when partial command fails
 # shopt -s failglob # empty globs throw error
 
 CURRENT_DIR=$PWD
-# TEST_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )" # get location of this script file
-# cd $TEST_HOME
+TEST_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )" # get location of this script file
+cd $TEST_HOME
 
-pr_json=`curl -s "https://api.github.com/repos/cBioPortal/cbioportal/issues/$CI_PULL_REQUEST"`
-pr_text=python3 -c "import json;print json.loads('$pr_json')"
+eval $(python3 get_pullrequest_info.py $CI_PULL_REQUEST)
+
+# clone backend branch
+backend_git_url=
+cd /tmp
+git clone --depth 1 -b master https://github.com/cbioportal/cbioportal.git
+
 
 mkdir -p /tmp/mysql_end-to-end_test
 
