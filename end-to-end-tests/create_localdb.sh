@@ -9,47 +9,52 @@ CURRENT_DIR=$PWD
 TEST_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )" # get location of this script file
 cd $TEST_HOME
 
+# get configuration
 eval $(python3 get_pullrequest_info.py $CI_PULL_REQUEST)
+eval $(python3 read_portalporperties.py runtime-config/portal.properties)
 
 # clone backend branch
-backend_git_url=
 cd /tmp
-git clone --depth 1 -b master https://github.com/cbioportal/cbioportal.git
+git clone --depth 1 -b $backend_branch_name "https://github.com/$backend_repo_name/cbioportal.git"
+PORTAL_HOME=/tmp/cbioportal
 
+# download db schema and seed data
+curl https://raw.githubusercontent.com/cBioPortal/cbioportal/v2.0.0/db-scripts/src/main/resources/cgds.sql > cgds.sql
+curl https://raw.githubusercontent.com/cBioPortal/datahub/master/seedDB/seed-cbioportal_hg19_v2.7.3.sql.gz > seed.sql.gz
 
+MYSQL_DATA_DIR=/tmp/mysql_end-to-end_test
 mkdir -p /tmp/mysql_end-to-end_test
 
-# MYSQL_DATA_DIR=/tmp/mysql_end-to-end_test
-# MYSQL_HOST_NAME="cbiodb"
-# MYSQL_USER_NAME="cbio_user"
-# MYSQL_PASSWORD="cbio_pass"
-# MYSQL_DATABASE="endtoend_local_cbiodb"
+docker network create endtoendlocaldb_default || true
 
-# curl https://raw.githubusercontent.com/cBioPortal/cbioportal/v2.0.0/db-scripts/src/main/resources/cgds.sql > cgds.sql
-# curl https://raw.githubusercontent.com/cBioPortal/datahub/master/seedDB/seed-cbioportal_hg19_v2.7.3.sql.gz > seed.sql.gz
+# create local database from with cbioportal db and seed data
+docker run -d \
+    --name=$db_host \
+    --net=endtoendlocaldb_default \
+    -e MYSQL_ROOT_PASSWORD=$db_user \
+    -e MYSQL_USER=$db_user \
+    -e MYSQL_PASSWORD=$db_password \
+    -e MYSQL_DATABASE=$db_portal_db_name \
+    -p 127.0.0.1:3306:3306 \
+    -v "$MYSQL_DATA_DIR:/var/lib/mysql/" \
+    -v "/tmp/cgds.sql:/docker-entrypoint-initdb.d/cgds.sql:ro" \
+    -v "/tmp/test/end-to-end_local_db/seed.sql.gz:/docker-entrypoint-initdb.d/seed_part1.sql.gz:ro" \
+    mysql:5.7
 
-# docker network create endtoendlocaldb_default || true
+while ! docker run --rm --net=endtoendlocaldb_default mysql:5.7 mysqladmin ping -u $db_user -p$db_password -h$db_portal_db_name --silent; do
+    echo Waiting for cbioportal database to initialize...
+    sleep 10
+done
 
-# # create local database container with cbioportal db and seed data
-# docker run -d \
-#     --name=$MYSQL_HOST_NAME \
-#     --net=endtoendlocaldb_default \
-#     -e MYSQL_ROOT_PASSWORD=$MYSQL_USER_NAME \
-#     -e MYSQL_USER=$MYSQL_USER_NAME \
-#     -e MYSQL_PASSWORD=$MYSQL_PASSWORD \
-#     -e MYSQL_DATABASE=$MYSQL_DATABASE \
-#     -p 127.0.0.1:3306:3306 \
-#     -v "$MYSQL_DATA_DIR:/var/lib/mysql/" \
-#     -v "$PORTAL_HOME/test/end-to-end_local_db/cgds.sql:/docker-entrypoint-initdb.d/cgds.sql:ro" \
-#     -v "$PORTAL_HOME/test/end-to-end_local_db/seed.sql.gz:/docker-entrypoint-initdb.d/seed_part1.sql.gz:ro" \
-#     mysql:5.7
+docker stop $db_host && docker rm $db_host
 
-# while ! docker run --rm --net=endtoendlocaldb_default mysql:5.7 mysqladmin ping -u $MYSQL_USER_NAME -p$MYSQL_PASSWORD -h$MYSQL_HOST_NAME --silent; do
-#     echo Waiting for cbioportal database to initialize...
-#     sleep 10
-# done
+git clone --depth 1 -b master "https://github.com/$backend_repo_name/cbioportal.git"
 
-# docker stop $MYSQL_HOST_NAME && docker rm $MYSQL_HOST_NAME
+
+
+# build backend 
+docker build -f Dockerfile.local -t cbioportal:my-local-source-dir .docker run -d 
+
 
 # echo Building docker containers ...
 # docker-compose build
