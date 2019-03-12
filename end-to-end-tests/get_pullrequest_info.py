@@ -19,27 +19,34 @@ if(myResponse.ok):
     # Loads (Load String) takes a Json file and converts into python data structure (dict or list, depending on JSON)
     jData = json.loads(myResponse.content)
 
-    pullrequest_full_name = jData['head']['repo']['full_name']
-    pullrequest_branch_name = jData['head']['ref']
-    pullrequest_commit_hash = jData['base']['sha']
-    pullrequest_base_full_name =  jData['base']['repo']['full_name']
-    pullrequest_base_branch_name = jData['base']['ref']
+    frontend_branch_name = jData['head']['ref']
+    frontend_commit_hash = jData['head']['sha']
+    frontend_organization = jData['head']['repo']['full_name'].split("/")[0].lower()
+    frontend_repo_name = jData['head']['repo']['name']
 
+    frontend_base_branch_name = jData['base']['ref']
+    frontend_base_commit_hash = jData['base']['sha']
+    frontend_base_organization = jData['base']['repo']['full_name'].split("/")[0].lower()
+    frontend_base_repo_name = jData['base']['repo']['name']
+
+    backend_organization = ""
     backend_branch_name = ""
-    backend_repo_name = ""
     pr_match = re.search(r"BACKEND_BRANCH=([^\s]+):([^\s]+)", jData['body'])
     if pr_match is not None :
-        backend_repo_name = pr_match.group(1).lower()
+        backend_organization = pr_match.group(1).lower()
         backend_branch_name = pr_match.group(2)
 
     print(
-      "pullrequest_full_name="+pullrequest_full_name +
-      "\npullrequest_branch_name="+pullrequest_branch_name +
-      "\npullrequest_commit_hash="+pullrequest_commit_hash +
-      "\npullrequest_base_full_name="+pullrequest_base_full_name +
-      "\npullrequest_base_branch_name="+pullrequest_base_branch_name +
-      "\nbackend_repo_name="+backend_repo_name +
-      "\nbackend_branch_name="+backend_branch_name)
+      "frontend_branch_name="+ frontend_branch_name + "\n"
+      "frontend_commit_hash="+ frontend_commit_hash + "\n"
+      "frontend_organization="+ frontend_organization + "\n"
+      "frontend_repo_name="+ frontend_repo_name + "\n"
+      "frontend_base_branch_name="+ frontend_base_branch_name + "\n"
+      "frontend_base_commit_hash="+ frontend_base_commit_hash + "\n"
+      "frontend_base_organization="+ frontend_base_organization + "\n"
+      "frontend_repo_name="+ frontend_repo_name + "\n"
+      "backend_organization="+ backend_organization + "\n"
+      "backend_branch_name="+ backend_branch_name)
 
 else:
   # If response code is not ok (200), print the resulting http error code with description

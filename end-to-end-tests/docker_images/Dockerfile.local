@@ -12,6 +12,9 @@
 FROM tomcat:8-jre8
 MAINTAINER Pim van Nierop <pimvannierop@thehyve.nl>
 
+ARG FRONTEND_VERSION=""
+ARG FRONTEND_GROUPID=""
+
 # install build and runtime dependencies and configure Tomcat for production
 RUN apt-get update && apt-get install -y --no-install-recommends \
 		git \
@@ -59,13 +62,13 @@ COPY . $PORTAL_HOME
 # install default config files, build and install, placing the scripts jar back
 # in the target folder where import scripts expect it after cleanup
 RUN mv ./portal.properties src/main/resources/portal.properties \
-	&& mv ./log4j.properties src/main/resources/log4j.properties \
-	&& mvn -Pdefault,heroku -DskipTests clean install -Dfrontend.version=$FRONTEND_VERSION -Dfrontend.groupId=$FRONTEND_GROUPID \
-	&& unzip portal/target/cbioportal-*.war -d $CATALINA_HOME/webapps/cbioportal \
-	&& mv scripts/target/scripts-*.jar /root/ \
-	&& mvn clean \
-	&& mkdir scripts/target/ \
-	&& mv /root/scripts-*.jar scripts/target/
+	&& mv ./log4j.properties src/main/resources/log4j.properties
+RUN if [[ "$FRONTEND_VERSION" = "" ]]; then mvn -DskipTests clean install; else mvn -DskipTests clean install -Dfrontend.version=$FRONTEND_VERSION -Dfrontend.groupId=$FRONTEND_GROUPID; fi
+#RUN unzip portal/target/cbioportal-*.war -d $CATALINA_HOME/webapps/cbioportal \
+#	&& mv scripts/target/scripts-*.jar /root/ \
+#	&& mvn clean \
+#	&& mkdir scripts/target/ \
+#	&& mv /root/scripts-*.jar scripts/target/
 
 # add runtime plumbing to Tomcat config:
 # - make cBioPortal honour db config in portal.properties
