@@ -114,10 +114,10 @@ jobs:
             (curl --insecure https://localhost:3000 || curl http://localhost:3000) > /dev/null && \
             sleep 1s
       - run:
-            name: "run end-to-end tests"    
-            command:
-                cd end-to-end-tests && \
-                yarn run test-webdriver-manager
+          name: "run end-to-end tests"    
+          command:
+            cd end-to-end-tests && \
+            yarn run test-webdriver-manager
           environment:
             E2E_LOCALDB: false
             DIFF_SCREENSHOT_DIR_NAME: diff
@@ -208,4 +208,3 @@ workflows:
            - end_to_end_tests:
                requires:
                    - install
-P
