@@ -6,7 +6,7 @@ NC='\033[0m'
 
 if [[ "$CIRCLECI" ]]; then
 
-    if [[ "$E2E_LOCALDB" ]]; then
+    if [[ "$E2E_LOCALDB" = true ]]; then
         # When on circle ci and using dockers that host a custom cbioportal
         # portal and database use env vars that point to this docker.
         # For local database tests evaluation of PR branch is perfored by
