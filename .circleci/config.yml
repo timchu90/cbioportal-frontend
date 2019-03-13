@@ -91,7 +91,7 @@ jobs:
     steps:
       - run:
           name: "Install yarn at specific version"
-          command:
+          command: |
             sudo npm install --global yarn@1.13.0
       - attach_workspace:
           at: /tmp/
@@ -115,7 +115,7 @@ jobs:
     #         sleep 1s
       - run:
           name: "run end-to-end tests"    
-          command:
+          command: |
             yarn serveDist & \
             cd end-to-end-tests && \
             yarn install --frozen-lockfile && \
