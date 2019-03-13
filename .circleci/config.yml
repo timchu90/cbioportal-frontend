@@ -95,8 +95,26 @@ jobs:
             sudo npm install --global yarn@1.13.0
       - attach_workspace:
           at: /tmp/
+    #   - run:
+    #       name: "Spin up frontend over ssl if necessary"
+    #       command:
+    #         yarn serveDist & \
+    #         cd end-to-end-tests && \
+    #         yarn install --frozen-lockfile && \
+    #         ./node_modules/webdriver-manager/bin/webdriver-manager update --versions.chrome '2.42' && \
+    #         ./node_modules/webdriver-manager/bin/webdriver-manager start --versions.chrome '2.42' & \
+    #         ./scripts/env_vars.sh && \
+    #         eval "$(./scripts/env_vars.sh)" && \
+    #         curl $CBIOPORTAL_URL > /dev/null && \
+    #         sleep 5s && \
+    #         curl $CBIOPORTAL_URL > /dev/null && \
+    #         sleep 5s && \
+    #         curl $CBIOPORTAL_URL > /dev/null && \
+    #         sleep 20s && \
+    #         (curl --insecure https://localhost:3000 || curl http://localhost:3000) > /dev/null && \
+    #         sleep 1s
       - run:
-          name: "Spin up frontend over ssl if necessary"
+          name: "run end-to-end tests"    
           command:
             yarn serveDist & \
             cd end-to-end-tests && \
@@ -112,10 +130,7 @@ jobs:
             curl $CBIOPORTAL_URL > /dev/null && \
             sleep 20s && \
             (curl --insecure https://localhost:3000 || curl http://localhost:3000) > /dev/null && \
-            sleep 1s
-      - run:
-          name: "run end-to-end tests"    
-          command:
+            sleep 1s && \
             cd end-to-end-tests && \
             yarn run test-webdriver-manager
           environment:
