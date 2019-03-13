@@ -11,7 +11,7 @@ if [[ "$CIRCLECI" ]]; then
         # portal and database use env vars that point to this docker.
         # For local database tests evaluation of PR branch is perfored by
         # the get_pullrequest_info.py script.
-        BRANCH=e2e-localdb
+        BACKEND=e2e_localdb
     else
         # on circle ci determine env variables based on branch or in case of PR
         # what branch the PR is pointing to
@@ -22,9 +22,11 @@ if [[ "$CIRCLECI" ]]; then
         else
             BRANCH=$CIRCLE_BRANCH
         fi
+        # here we will set respective external backends for some of the tests (e.g. if PR is to frontend master, then use master backend)
+        BACKEND=$BRANCH
     fi
 
-    cat $SCRIPT_DIR/../env/${BRANCH}.sh
+    cat $SCRIPT_DIR/../env/${BACKEND}.sh
 elif [[ "$BRANCH_ENV" ]]; then
     cat $SCRIPT_DIR/../env/${BRANCH_ENV}.sh
 
