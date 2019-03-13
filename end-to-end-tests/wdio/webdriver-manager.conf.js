@@ -7,6 +7,8 @@ require.extensions['.txt'] = function (module, filename) {
     module.exports = fs.readFileSync(filename, 'utf8');
 };
 
+var diffDir = process.env.DIFF_DIRECTORY || 'screenshots/diff';
+
 exports.config = {
     //
     // ==================
@@ -127,7 +129,7 @@ exports.config = {
         compare: new VisualRegressionCompare.LocalCompare({
             referenceName: getScreenshotName(path.join(process.cwd(), 'screenshots/reference')),
             screenshotName: getScreenshotName(path.join(process.cwd(), 'screenshots/screen')),
-            diffName: getScreenshotName(path.join(process.cwd(), 'screenshots/diff')),
+            diffName: getScreenshotName(path.join(process.cwd(), diffDir)),
             misMatchTolerance:0.01,
             ignoreComparison: "antialiasing"
         }),

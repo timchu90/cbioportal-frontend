@@ -96,8 +96,8 @@ jobs:
       - attach_workspace:
           at: /tmp/
       - run:
-          name: "Spin up frontend over ssl if necessary and run end to end tests"
-          command: |
+          name: "Spin up frontend over ssl if necessary"
+          command:
             yarn serveDist & \
             cd end-to-end-tests && \
             yarn install --frozen-lockfile && \
@@ -112,13 +112,46 @@ jobs:
             curl $CBIOPORTAL_URL > /dev/null && \
             sleep 20s && \
             (curl --insecure https://localhost:3000 || curl http://localhost:3000) > /dev/null && \
-            sleep 1s && \
-            cd end-to-end-tests && \
-            yarn run test-webdriver-manager
+            sleep 1s
+      - run:
+            name: "run end-to-end tests"    
+            command:
+                cd end-to-end-tests && \
+                yarn run test-webdriver-manager
           environment:
+            E2E_LOCALDB: false
+            DIFF_SCREENSHOT_DIR_NAME: diff
             JUNIT_REPORT_PATH: ./junit/
             FRONTEND_TEST_USE_LOCAL_DIST: true
           when: always
+    #   - run:
+    #         name: "run end-to-end tests with local database against backend version specified in the PR"    
+    #         command:
+    #             create_localdb.sh --specified-backend && \
+    #             cd end-to-end-tests && \
+    #             yarn run test-webdriver-manager
+    #       environment:
+    #         diffDir
+    #         E2E_LOCALDB: true
+    #         DIFF_SCREENSHOT_DIR_NAME: diff_localdb_specified
+    #         SPEC_FILE_PATTERN: ./specs_localdb/**/*.spec.js
+    #         JUNIT_REPORT_PATH: ./junit/
+    #         FRONTEND_TEST_USE_LOCAL_DIST: true
+    #       when: always
+    #   - run:
+    #         name: "run end-to-end tests with local database against reference backend version (master or rc)"    
+    #         command:
+    #             create_localdb.sh --reference-backend && \
+    #             cd end-to-end-tests && \
+    #             yarn run test-webdriver-manager
+    #       environment:
+    #         diffDir
+    #         E2E_LOCALDB: true
+    #         DIFF_SCREENSHOT_DIR_NAME: diff_localdb_reference
+    #         SPEC_FILE_PATTERN: ./specs_localdb/**/*.spec.js
+    #         JUNIT_REPORT_PATH: ./junit/
+    #         FRONTEND_TEST_USE_LOCAL_DIST: true
+    #       when: always
       - run:
           name: "Make sure all screenshots are tracked (otherwise the test will always be successful)"
           command: 'for f in end-to-end-tests/screenshots/reference/*.png; do git ls-files --error-unmatch $f > /dev/null 2> /dev/null || (echo -e "\033[0;31m $f not tracked \033[0m" && touch screenshots_not_tracked); done; ls screenshots_not_tracked > /dev/null 2> /dev/null && exit 1 || exit 0'
