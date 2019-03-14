@@ -152,20 +152,22 @@ export function getHeatmapTrackRuleSetParams(trackSpec: IHeatmapTrackSpec):RuleS
     let colors:[number, number, number, number][];
     let value_stop_points:number[];
 
-    if (trackSpec.molecularAlterationType === AlterationTypeConstants.TREATMENT_RESPONSE) {
-        return getTreatmentTrackRuleSetParams(trackSpec);
-    }
-
-    if (trackSpec.molecularAlterationType === AlterationTypeConstants.METHYLATION) {
-        value_range = [0,1];
-        legend_label = "Methylation Heatmap";
-        value_stop_points = [0,0.35,1];
-        colors = [[0,0,255,1], [255,255,255,1], [255,0,0,1]];
-    } else {
-        value_range = [-3,3];
-        legend_label = "Expression Heatmap";
-        value_stop_points = [-3, 0, 3];
-        colors = [[0,0,255,1], [0,0,0,1], [255,0,0,1]];
+    switch (trackSpec.molecularAlterationType) {
+        case AlterationTypeConstants.TREATMENT_RESPONSE:
+            return getTreatmentTrackRuleSetParams(trackSpec);
+            break;
+        case AlterationTypeConstants.METHYLATION:
+            value_range = [0,1];
+            legend_label = "Methylation Heatmap";
+            value_stop_points = [0,0.35,1];
+            colors = [[0,0,255,1], [255,255,255,1], [255,0,0,1]];
+            break;
+        default:
+            value_range = [-3,3];
+            legend_label = "Expression Heatmap";
+            value_stop_points = [-3, 0, 3];
+            colors = [[0,0,255,1], [0,0,0,1], [255,0,0,1]];
+            break;
     }
 
     return {

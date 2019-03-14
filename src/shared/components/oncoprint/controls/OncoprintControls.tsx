@@ -418,7 +418,7 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
     }
 
     @autobind
-    private onChangeEditableDiv(text:string):string {
+    private onChangeTreamentTextArea(text:string):string {
 
         // get values from input string
         const elements = this.splitTextField(text);
@@ -594,8 +594,8 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
                                 elements={this.textareaTreatmentEntries}
                                 text={this.textareaTreatmentText}
                                 placeholder="Type space- or comma-separated treatments here, then click 'Add Treatments to Heatmap'"
-                                onChange={this.onChangeEditableDiv}
-                                onItemRemove={this.onTreatmentRemoved}
+                                onChangeTextArea={this.onChangeTreamentTextArea}
+                                onIconClicked={this.onTreatmentRemoved}
                                 />,
                                 <div className={classNames("treatment-selector")}>
                                 <CheckedSelect

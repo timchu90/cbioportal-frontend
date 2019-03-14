@@ -392,6 +392,9 @@ function transitionTracks(
             } else if (heatmap === undefined) {
                 heatmap = trackSpecKeyToTrackId[spec.key];
             }
+            if (heatmap01 !== undefined && heatmap !== undefined) {
+                break;
+            }
         }
         trackIdForRuleSetSharing.heatmap = heatmap;
         trackIdForRuleSetSharing.heatmap01 = heatmap01;
@@ -476,8 +479,8 @@ function transitionTracks(
     for (let track of nextProps.heatmapTracks) {
 
         // add treatment layout/formatting information to the track specs
-        track['maxProfileValue'] = treatmentProfileMaxValue[track.molecularProfileId];
-        track['ruleSetTrackId'] = treatmentProfileSpecTrackId[track.molecularProfileId];
+        track.maxProfileValue = treatmentProfileMaxValue[track.molecularProfileId];
+        track.ruleSetTrackId = treatmentProfileSpecTrackId[track.molecularProfileId];
 
         transitionHeatmapTrack(track, prevHeatmapTracks[track.key], getTrackSpecKeyToTrackId,
             () => undefined, oncoprint, nextProps, {}, trackIdForRuleSetSharing, 
@@ -490,8 +493,8 @@ function transitionTracks(
         if (prevHeatmapTracks.hasOwnProperty(track.key)) {
 
             // add treatment layout/formatting information to the track specs
-            track['maxProfileValue'] = treatmentProfileMaxValue[track.molecularProfileId];
-            track['ruleSetTrackId'] = treatmentProfileSpecTrackId[track.molecularProfileId];
+            track.maxProfileValue = treatmentProfileMaxValue[track.molecularProfileId];
+            track.ruleSetTrackId = treatmentProfileSpecTrackId[track.molecularProfileId];
 
             transitionHeatmapTrack(undefined, prevHeatmapTracks[track.key], getTrackSpecKeyToTrackId,
                                 () => undefined, oncoprint, nextProps, {}, trackIdForRuleSetSharing,
@@ -909,20 +912,26 @@ function transitionHeatmapTrack(
 
         let trackIdForRuleSetSharingKey:"heatmap"|"heatmap01"|undefined;
 
-        if (nextSpec.molecularAlterationType === AlterationTypeConstants.TREATMENT_RESPONSE) {
-            
-            trackIdForRuleSetSharingKey = undefined;
+        switch (nextSpec.molecularAlterationType) {
+            case AlterationTypeConstants.TREATMENT_RESPONSE:
 
-            // register the new track id so that it will determine formatting of the track group
-            let rulesetTrackId = (nextSpec as IHeatmapTrackSpec).ruleSetTrackId;
-            if (rulesetTrackId) {
-                oncoprint.shareRuleSet(newTrackId, rulesetTrackId);
-            }
+                trackIdForRuleSetSharingKey = undefined;
         
-        } else if (nextSpec.molecularAlterationType === AlterationTypeConstants.METHYLATION)  {
-            trackIdForRuleSetSharingKey = "heatmap01";
-        } else {
-            trackIdForRuleSetSharingKey = "heatmap";
+                // register the new track id so that it will determine formatting of the track group
+                let rulesetTrackId = (nextSpec as IHeatmapTrackSpec).ruleSetTrackId;
+                if (rulesetTrackId) {
+                    oncoprint.shareRuleSet(newTrackId, rulesetTrackId);
+                }
+
+                break;
+
+            case AlterationTypeConstants.METHYLATION:
+                trackIdForRuleSetSharingKey = "heatmap01"; 
+                break;
+        
+            default:
+                trackIdForRuleSetSharingKey = "heatmap";
+                break;
         }
 
         if (trackIdForRuleSetSharingKey) {
@@ -945,8 +954,7 @@ function transitionHeatmapTrack(
         if (nextSpec.info !== prevSpec.info && nextSpec.info !== undefined) {
             oncoprint.setTrackInfo(trackId, nextSpec.info);
         }
-        // re-register the shared rule set (when defined) when reloading the page 
-        // if (nextSpec.molecularAlterationType === AlterationTypeConstants.TREATMENT_RESPONSE) {
+        // re-register the shared rule set
         let rulesetTrackId = (nextSpec as IHeatmapTrackSpec).ruleSetTrackId;
         if (rulesetTrackId) {
             oncoprint.shareRuleSet(rulesetTrackId, trackId);

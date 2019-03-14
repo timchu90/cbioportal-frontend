@@ -11,8 +11,8 @@ export interface ITextIconAreaProps {
     text:string;
     placeholder?: string;
     classNames?: string[];
-    onItemRemove?: (d:string) => void;
-    onChange?: (s:string) => string;
+    onIconClicked?: (itemId:string) => void;
+    onChangeTextArea?: (textAreaContents:string) => string;
 }
 
 export interface ITextIconAreaItemProps {
@@ -45,14 +45,14 @@ class TextIconArea extends React.Component<ITextIconAreaProps, {text:string}> {
     }
 
     private itemRemovedByUser = (event:any) => {
-        if (this.props.onItemRemove && event.target) {
-            this.props.onItemRemove(event.target.id);
+        if (this.props.onIconClicked && event.target) {
+            this.props.onIconClicked(event.target.id);
         }
     }
     
     private textUpdatedByUser = (event:any) => {
         this.textAreaContent = event.currentTarget.value;
-        if (this.props.onChange) {
+        if (this.props.onChangeTextArea) {
             this.startTimedSubmit();
         }
     }

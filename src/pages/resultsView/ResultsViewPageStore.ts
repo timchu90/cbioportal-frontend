@@ -2005,13 +2005,13 @@ export class ResultsViewPageStore {
                     } else {
                         switch(profile.molecularAlterationType) {
                             case MRNA_EXPRESSION:
-                                return 3;
-                            case PROTEIN_LEVEL:
                                 return 4;
-                            case METHYLATION:
+                            case PROTEIN_LEVEL:
                                 return 5;
-                            case TREATMENT_RESPONSE:
+                            case METHYLATION:
                                 return 6;
+                            case TREATMENT_RESPONSE:
+                                return 7;
                         }
                     }
                 }

@@ -155,7 +155,11 @@ export function makeHeatmapTrackTooltip(genetic_alteration_type:MolecularProfile
             }
         }
         if ((d.profile_data !== null) && (typeof d.profile_data !== "undefined")) {
-            profile_data = d.category || d.profile_data.toFixed(2);
+            if (genetic_alteration_type == AlterationTypeConstants.TREATMENT_RESPONSE) {
+                profile_data = d.category || d.profile_data.toFixed(2);
+            } else {
+                profile_data = d.profile_data.toFixed(2);
+            }
         }
         let ret = data_header + '<b>' + profile_data + '</b><br/>';
         return $('<div>').addClass(TOOLTIP_DIV_CLASS).append(getCaseViewElt(dataUnderMouse, !!link_id)).append("<br/>").append(ret);
