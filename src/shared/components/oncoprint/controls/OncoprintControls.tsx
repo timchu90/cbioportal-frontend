@@ -425,7 +425,7 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
 
         // check values for valid treatment ids
         const selectedKeys:string[] = _.map(this._selectedTreatmentOptions,'value');
-        let detectedTreatments:string[] = [];
+        const detectedTreatments:string[] = [];
         _.each(elements, (d:string)=> {
             if (d in this.treatmentOptionsByValueMap) {
                 detectedTreatments.push(d);

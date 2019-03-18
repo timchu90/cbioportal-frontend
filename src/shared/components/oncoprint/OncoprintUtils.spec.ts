@@ -7,6 +7,7 @@ import {observable} from "mobx";
 import * as _ from 'lodash';
 import {assert} from 'chai';
 import {IQueriedMergedTrackCaseData} from "../../../pages/resultsView/ResultsViewPageStore";
+import { splitHeatmapTextField } from 'shared/components/oncoprint/OncoprintUtils';
 
 describe('OncoprintUtils', () => {
     describe('alterationInfoForCaseAggregatedDataByOQLLine', () => {
@@ -414,5 +415,35 @@ describe('OncoprintUtils', () => {
             // const ruleSetParams = getTreatmentTrackRuleSetParams(treatmentTracSpec);
 
         });
+    });
+});
+
+describe('Split heatmap text field', () => {
+    it('Recognizes spaces', () => {
+        const elements = splitHeatmapTextField("A B C");
+        assert.equal(elements.length, 3);
+    });
+    it('Recognizes tabs', () => {
+        const elements = splitHeatmapTextField("A   B   C");
+        assert.equal(elements.length, 3);
+    });
+    it("Recognizes comma's", () => {
+        const elements = splitHeatmapTextField("A,B,C");
+        assert.equal(elements.length, 3);
+    });
+    it("Recognizes comma's and spaces", () => {
+        const elements = splitHeatmapTextField("A, B, C");
+        assert.equal(elements.length, 3);
+    });
+    it("Recognizes comma's and tabs", () => {
+        const elements = splitHeatmapTextField("A,  B,  C");
+        assert.equal(elements.length, 3);
+    });
+    it("Recognizes EOL's", () => {
+        const elements = splitHeatmapTextField(`
+        A
+        B
+        C`);
+        assert.equal(elements.length, 3);
     });
 });

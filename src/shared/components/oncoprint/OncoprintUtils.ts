@@ -918,3 +918,7 @@ export function makeGenesetHeatmapTracksMobxPromise(
         default: []
     });
 }
+
+export function splitHeatmapTextField(text:string):string[] {
+    return _.uniq(text.split(/[,\s\n]/));
+}
