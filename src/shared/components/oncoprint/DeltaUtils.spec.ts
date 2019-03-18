@@ -519,6 +519,7 @@ describe("Oncoprint DeltaUtils", ()=>{
     describe('Treatment heatmap tracks', () => {
 
         const makeMinimalOncoprintProps = (): IOncoprintProps => ({
+            caseLinkOutInTooltips:false,
             clinicalTracks: [],
             geneticTracks: [],
             genesetHeatmapTracks: [],
@@ -557,9 +558,9 @@ describe("Oncoprint DeltaUtils", ()=>{
                     molecularProfileId: "profile1",
                     molecularAlterationType: "TREATMENT_RESPONSE",
                     data: [
-                        {profile_data: 1, study: "study1", uid: "uid"}, 
-                        {profile_data: 2, study: "study1", uid: "uid"}, 
-                        {profile_data: 3, study: "study1", uid: "uid"}
+                        {profile_data: 1, study_id: "study1", uid: "uid", patient: "patient1"}, 
+                        {profile_data: 2, study_id: "study1", uid: "uid", patient: "patient1"}, 
+                        {profile_data: 3, study_id: "study1", uid: "uid", patient: "patient1"}
                     ],
                     datatype: "TREATMENT_RESPONSE",
                     trackGroupIndex: 1,
@@ -575,9 +576,9 @@ describe("Oncoprint DeltaUtils", ()=>{
                     molecularProfileId: "profile1",
                     molecularAlterationType: "TREATMENT_RESPONSE",
                     data: [
-                        {profile_data: 1, study: "study1", uid: "uid"}, 
-                        {profile_data: 2, study: "study1", uid: "uid"}, 
-                        {profile_data: 3, study: "study1", uid: "uid"}
+                        {profile_data: 1, study_id: "study1", uid: "uid", patient: "patient1"}, 
+                        {profile_data: 2, study_id: "study1", uid: "uid", patient: "patient1"}, 
+                        {profile_data: 3, study_id: "study1", uid: "uid", patient: "patient1"}
                     ],
                     datatype: "TREATMENT_RESPONSE",
                     trackGroupIndex: 1,
@@ -588,9 +589,9 @@ describe("Oncoprint DeltaUtils", ()=>{
                     molecularProfileId: "profile1",
                     molecularAlterationType: "TREATMENT_RESPONSE",
                     data: [
-                        {profile_data: 4, study: "study1", uid: "uid"}, 
-                        {profile_data: 5, study: "study1", uid: "uid"}, 
-                        {profile_data: 6, study: "study1", uid: "uid"}
+                        {profile_data: 4, study_id: "study1", uid: "uid", patient: "patient1"}, 
+                        {profile_data: 5, study_id: "study1", uid: "uid", patient: "patient1"}, 
+                        {profile_data: 6, study_id: "study1", uid: "uid", patient: "patient1"}
                     ],
                     datatype: "TREATMENT_RESPONSE",
                     trackGroupIndex: 1,
@@ -630,9 +631,9 @@ describe("Oncoprint DeltaUtils", ()=>{
                     molecularProfileId: "profile1",
                     molecularAlterationType: "TREATMENT_RESPONSE",
                     data: [
-                        {profile_data: 1, study: "study1", uid: "uid"}, 
-                        {profile_data: 2, study: "study1", uid: "uid"}, 
-                        {profile_data: 3, study: "study1", uid: "uid"}
+                        {profile_data: 1, study_id: "study1", uid: "uid", patient: "patient1"}, 
+                        {profile_data: 2, study_id: "study1", uid: "uid", patient: "patient1"}, 
+                        {profile_data: 3, study_id: "study1", uid: "uid", patient: "patient1"}
                     ],
                     datatype: "TREATMENT_RESPONSE",
                     trackGroupIndex: 1,
@@ -648,9 +649,9 @@ describe("Oncoprint DeltaUtils", ()=>{
                     molecularProfileId: "profile1",
                     molecularAlterationType: "TREATMENT_RESPONSE",
                     data: [
-                        {profile_data: 1, study: "study1", uid: "uid"}, 
-                        {profile_data: 2, study: "study1", uid: "uid"}, 
-                        {profile_data: 3, study: "study1", uid: "uid"}
+                        {profile_data: 1, study_id: "study1", uid: "uid", patient: "patient1"}, 
+                        {profile_data: 2, study_id: "study1", uid: "uid", patient: "patient1"}, 
+                        {profile_data: 3, study_id: "study1", uid: "uid", patient: "patient1"}
                     ],
                     datatype: "TREATMENT_RESPONSE",
                     trackGroupIndex: 1,
@@ -661,9 +662,9 @@ describe("Oncoprint DeltaUtils", ()=>{
                     molecularProfileId: "profile1",
                     molecularAlterationType: "TREATMENT_RESPONSE",
                     data: [
-                        {profile_data: 4, study: "study1", uid: "uid"}, 
-                        {profile_data: 5, study: "study1", uid: "uid"}, 
-                        {profile_data: 6, study: "study1", uid: "uid"}
+                        {profile_data: 4, study_id: "study1", uid: "uid", patient: "patient1"}, 
+                        {profile_data: 5, study_id: "study1", uid: "uid", patient: "patient1"}, 
+                        {profile_data: 6, study_id: "study1", uid: "uid", patient: "patient1"}
                     ],
                     datatype: "TREATMENT_RESPONSE",
                     trackGroupIndex: 1,
