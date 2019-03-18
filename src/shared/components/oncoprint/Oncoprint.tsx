@@ -52,8 +52,8 @@ export interface IBaseHeatmapTrackDatum {
     study_id: string;
     uid: string;
     na?:boolean;
-    category?:string
-    truncation?:string;
+    category?:string;
+    thresholdType?:">"|"<";
 }
 export interface IGeneHeatmapTrackDatum extends IBaseHeatmapTrackDatum {
     hugo_gene_symbol: string;

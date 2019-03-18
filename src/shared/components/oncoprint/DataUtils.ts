@@ -281,7 +281,7 @@ export function fillHeatmapTrackDatum<T extends IBaseHeatmapTrackDatum, K extend
     featureKey: K,
     featureId: T[K],
     case_:Sample|Patient,
-    data?: {value: number, truncation?: string}[]
+    data?: {value: number, thresholdType?: ">"|"<" }[]
 ) {
     trackDatum[featureKey] = featureId;
     trackDatum.study_id = case_.studyId;
@@ -290,8 +290,8 @@ export function fillHeatmapTrackDatum<T extends IBaseHeatmapTrackDatum, K extend
         trackDatum.na = true;
     } else if (data.length === 1) {
         trackDatum.profile_data = data[0].value;
-        trackDatum.truncation = data[0].truncation;
-        trackDatum.category = trackDatum.profile_data && trackDatum.truncation? `${trackDatum.truncation}${trackDatum.profile_data.toFixed(2)}` : undefined;
+        trackDatum.thresholdType = data[0].thresholdType;
+        trackDatum.category = trackDatum.profile_data && trackDatum.thresholdType? `${trackDatum.thresholdType}${trackDatum.profile_data.toFixed(2)}` : undefined;
     } else {
         if (isSample(case_)) {
             throw Error("Unexpectedly received multiple heatmap profile data for one sample");
@@ -316,7 +316,7 @@ export function makeHeatmapTrackData<T extends IBaseHeatmapTrackDatum, K extends
     featureKey: K,
     featureId: T[K],
     cases:Sample[]|Patient[],
-    data: {value: number, uniquePatientKey: string, uniqueSampleKey: string, truncation?: string}[]
+    data: {value: number, uniquePatientKey: string, uniqueSampleKey: string, thresholdType?: string}[]
 ): T[] {
     if (!cases.length) {
         return [];

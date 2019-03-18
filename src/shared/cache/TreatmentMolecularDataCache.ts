@@ -34,7 +34,7 @@ function augmentQueryResults(queries: IQuery[], results: TreatmentMolecularData[
     }
     for (const queryResult of results) {
         for (let datum of queryResult) {
-            datum = handleValueTruncation(datum);
+            datum = handleValueThreshold(datum);
             keyedAugments[
                 queryToKey({
                     molecularProfileId: datum.geneticProfileId,
@@ -46,18 +46,18 @@ function augmentQueryResults(queries: IQuery[], results: TreatmentMolecularData[
     return _.values(keyedAugments);
 }
 
-// values are passed as strings from the REST facility
-// check for value truncators ('>' or '<') to appear in front of values
-// and convert to a numeric value and a separate truncation indicator
-function handleValueTruncation(datum:TreatmentMolecularData) {
+// Values are passed as strings from the REST facility
+// check for value threshold indicators ('>' or '<') to appear in front of values
+// and convert to a numeric value and a separate value threshold indicator
+function handleValueThreshold(datum:TreatmentMolecularData) {
     let value = datum.value;
     var matches = /([><]*)(.+)/.exec(value as string);
     if (matches) {
         datum.value = Number(matches[2]);
-        datum.truncation = (matches[1].length > 0) ? matches[1] : undefined;
+        datum.thresholdType = (matches[1].length > 0) ? matches[1] : undefined as any;
     } else {
         datum.value = Number(value);
-        datum.truncation = undefined;
+        datum.thresholdType = undefined;
     }
     return datum;
 }
