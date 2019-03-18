@@ -179,9 +179,9 @@ const EVENT_KEY = {
 export default class OncoprintControls extends React.Component<IOncoprintControlsProps, {}> {
 
     @observable horzZoomSliderState:number;
-    @observable heatmapGenesReady:boolean = false;
-    @observable _selectedTreatmentOptions:ISelectOption[] = [];
-    textareaTreatmentText:string = "";
+    @observable heatmapGenesReady = false;
+    @observable private _selectedTreatmentOptions:ISelectOption[] = [];
+    private textareaTreatmentText = "";
 
     constructor(props:IOncoprintControlsProps) {
         super(props);
