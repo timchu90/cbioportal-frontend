@@ -124,8 +124,11 @@ export function makeClinicalTrackTooltip(track:ClinicalTrackSpec, link_id?:boole
 }
 export function makeHeatmapTrackTooltip(genetic_alteration_type:MolecularProfile["molecularAlterationType"], link_id?:boolean) {
     return function (dataUnderMouse:any[]) {
+        
         let data_header = '';
-        let profile_data = 'N/A';
+        let firstTextElement = 'N/A';
+        let secondTextElement = '';
+
         switch(genetic_alteration_type) {
             case AlterationTypeConstants.MRNA_EXPRESSION:
                 data_header = 'MRNA: ';
@@ -140,28 +143,43 @@ export function makeHeatmapTrackTooltip(genetic_alteration_type:MolecularProfile
                 data_header = 'TREATMENT: ';
                 break;
         }
+
         let profileDataSum = 0;
+        const profileCategories:string[] = [];
         let profileDataCount = 0;
+        let categoryCount = 0;
         for (const d of dataUnderMouse) {
             if ((d.profile_data !== null) && (typeof d.profile_data !== "undefined")) {
-                profileDataSum += d.profile_data;
-                profileDataCount += 1;
+                if (genetic_alteration_type === AlterationTypeConstants.TREATMENT_RESPONSE && d.category) {
+                    profileCategories.push(d.category);
+                    categoryCount += 1;
+                } else {
+                    profileDataSum += d.profile_data;
+                    profileDataCount += 1;
+                }
             }
         }
+        
         if (profileDataCount > 0) {
-            profile_data = (profileDataSum/profileDataCount).toFixed(2);
-            if (profileDataCount > 1) {
-                profile_data = `${profile_data} (average of ${profileDataCount} values)`;
-            }
-        }
-        if ((d.profile_data !== null) && (typeof d.profile_data !== "undefined")) {
-            if (genetic_alteration_type == AlterationTypeConstants.TREATMENT_RESPONSE) {
-                profile_data = d.category || d.profile_data.toFixed(2);
+            const profileDisplayValue = (profileDataSum/profileDataCount).toFixed(2);
+            if (profileDataCount === 0) {
+                firstTextElement = profileDisplayValue;
             } else {
-                profile_data = d.profile_data.toFixed(2);
+                firstTextElement = `${profileDisplayValue} (average of ${profileDataCount} values)`;
             }
         }
-        let ret = data_header + '<b>' + profile_data + '</b><br/>';
+        
+        if (categoryCount > 0) {
+            if (profileDataCount === 0 && categoryCount === 1) {
+                firstTextElement = profileCategories[0];
+            } else if (profileDataCount > 0 && categoryCount === 1) {
+                secondTextElement = `'${profileCategories[0]}' group`;
+            } else {
+                secondTextElement = `'${_.uniq(profileCategories).join("', '")}' groups of ${categoryCount} data points)`;
+            }
+        }
+
+        const ret = data_header + '<b>' + firstTextElement + '</b>' + secondTextElement !== ''?' and ':''  + '<b>' + secondTextElement + '</b><br/>';
         return $('<div>').addClass(TOOLTIP_DIV_CLASS).append(getCaseViewElt(dataUnderMouse, !!link_id)).append("<br/>").append(ret);
     };
 };
