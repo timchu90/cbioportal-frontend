@@ -11,7 +11,7 @@ export interface ITextIconAreaProps {
     text:string;
     placeholder?: string;
     classNames?: string[];
-    onIconClicked?: (itemId:string) => void;
+    onIconClicked?: (itemValue:string) => void;
     onChangeTextArea?: (textAreaContents:string) => string;
 }
 
