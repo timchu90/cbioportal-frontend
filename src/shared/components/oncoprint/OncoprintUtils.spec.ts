@@ -1,13 +1,15 @@
 import {
     alterationInfoForCaseAggregatedDataByOQLLine,
     makeGeneticTrackWith,
-    percentAltered
+    percentAltered,
+    extractTreatmentSelections
 } from "./OncoprintUtils";
 import {observable} from "mobx";
 import * as _ from 'lodash';
 import {assert} from 'chai';
 import {IQueriedMergedTrackCaseData} from "../../../pages/resultsView/ResultsViewPageStore";
 import { splitHeatmapTextField } from 'shared/components/oncoprint/OncoprintUtils';
+import { ISelectOption } from 'shared/components/oncoprint/controls/OncoprintControls';
 
 describe('OncoprintUtils', () => {
     describe('alterationInfoForCaseAggregatedDataByOQLLine', () => {
@@ -450,4 +452,23 @@ describe('Split heatmap text field', () => {
         const elements = splitHeatmapTextField("A B B");
         assert.equal(elements.length, 2);
     });
+});
+
+describe('Treatment selections extracted from text area', () => {
+
+    const selectedTreatments:ISelectOption[] = [];
+    const treatmentMap = {
+        'treatmentA': {value: "valueA", label: "labelA"}
+    };
+
+    it('Adds recognized treaments to selection', () => {
+        extractTreatmentSelections("treatmentA treatmentB", selectedTreatments, treatmentMap);
+        assert.equal(selectedTreatments.length, 1);
+    });
+
+    it('Removed recognized treaments from text field', () => {
+        const text = extractTreatmentSelections("treatmentC treatmentA treatmentB", selectedTreatments, treatmentMap);
+        assert.equal(text, "treatmentC  treatmentB");
+    });
+
 });

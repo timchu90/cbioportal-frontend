@@ -49,6 +49,7 @@ import GeneMolecularDataCache from "shared/cache/GeneMolecularDataCache";
 import { AlterationTypes } from "pages/patientView/copyNumberAlterations/column/CnaColumnFormatter";
 import { TreatmentMolecularData, SortOrder } from "shared/api/generated/CBioPortalAPIInternal";
 import { isNumber } from "util";
+import { ISelectOption } from "./controls/OncoprintControls";
 
 interface IGenesetExpansionMap {
         [genesetTrackKey: string]: IHeatmapTrackSpec[];
@@ -650,56 +651,51 @@ export function makeClinicalTracksMobxPromise(oncoprint:ResultsViewOncoprint, sa
 }
 
 export function makeHeatmapTracksMobxPromise(oncoprint:ResultsViewOncoprint, sampleMode:boolean) {
+
+    const moleculePromise = makeMolecularProfileHeatmapTracksMobxPromise(oncoprint, sampleMode);
+    const treatmentPromise = makeTreatmentProfileHeatmapTracksMobxPromise(oncoprint, sampleMode);
+
+    return remoteData<IHeatmapTrackSpec[]>({
+        await:()=>[
+            moleculePromise,
+            treatmentPromise
+        ],
+        invoke:async()=>{
+            return (moleculePromise.result!).concat(treatmentPromise.result!);
+        },
+        default: []
+    });
+}
+
+function makeMolecularProfileHeatmapTracksMobxPromise(oncoprint:ResultsViewOncoprint, sampleMode:boolean) {
     return remoteData<IHeatmapTrackSpec[]>({
         await:()=>[
             oncoprint.props.store.samples,
             oncoprint.props.store.patients,
             oncoprint.props.store.molecularProfileIdToMolecularProfile,
-            oncoprint.props.store.geneMolecularDataCache,
-            oncoprint.props.store.treatmentMolecularDataCache,
-            oncoprint.props.store.treatmentLinkMap
+            oncoprint.props.store.geneMolecularDataCache
         ],
         invoke:async()=>{
             const molecularProfileIdToMolecularProfile = oncoprint.props.store.molecularProfileIdToMolecularProfile.result!;
             const molecularProfileIdToHeatmapTracks = oncoprint.molecularProfileIdToHeatmapTracks;
-            const treatmentLinkMap = oncoprint.props.store.treatmentLinkMap.result!;
-
-            // Entities shown in the heatmap tracks can be genes, gene sets or treatments. Gene sets are handled in
-            // makeGenesetHeatmapTracksMobxPromise(). Below gene and treatment entities are separated and delegated
-            // to appropriate data caches.
 
             const geneProfiles = _.filter(molecularProfileIdToHeatmapTracks.values(), d => d.molecularAlterationType !== AlterationTypeConstants.TREATMENT_RESPONSE);
             const neededGenes = _.flatten(geneProfiles.map(v=>v.entities.keys()));
             await oncoprint.props.store.geneCache.getPromise(neededGenes.map(g=>({hugoGeneSymbol:g})), true);
 
-            const geneCacheQueries = _.flatten(geneProfiles.map(entry=>(
+            const cacheQueries = _.flatten(geneProfiles.map(entry=>(
                 entry.entities.keys().map(g=>({
                     molecularProfileId: entry.molecularProfileId,
                     entrezGeneId: oncoprint.props.store.geneCache.get({ hugoGeneSymbol:g })!.data!.entrezGeneId,
                     hugoGeneSymbol: g.toUpperCase()
                 }))
             )));
-            
-            const treatmentProfiles = _.filter(molecularProfileIdToHeatmapTracks.values(), d => d.molecularAlterationType === AlterationTypeConstants.TREATMENT_RESPONSE);
-            const neededTreatments = _.flatten(treatmentProfiles.map(v=>v.entities.keys()));
-            await oncoprint.props.store.treatmentCache.getPromise(neededTreatments.map(g=>({treatmentId:g})), true);
-            
-            const treatmentCacheQueries = _.flatten(treatmentProfiles.map(entry=>(
-                entry.entities.keys().map(g=>({
-                    molecularProfileId: entry.molecularProfileId,
-                    treatmentId: oncoprint.props.store.treatmentCache.get({ treatmentId:g })!.data!.treatmentId,
-                    treatmentName: oncoprint.props.store.treatmentCache.get({ treatmentId:g })!.data!.name
-                }))
-            )));
-
-            await oncoprint.props.store.geneMolecularDataCache.result!.getPromise(geneCacheQueries, true);
-            await oncoprint.props.store.treatmentMolecularDataCache.result!.getPromise(treatmentCacheQueries, true);
+            await oncoprint.props.store.geneMolecularDataCache.result!.getPromise(cacheQueries, true);
 
             const samples = oncoprint.props.store.samples.result!;
             const patients = oncoprint.props.store.patients.result!;
 
-            let geneHeatmapTracks:IHeatmapTrackSpec[] = geneCacheQueries.map(query=>{
-
+            return cacheQueries.map(query=>{
                 const molecularProfileId = query.molecularProfileId;
                 const gene = query.hugoGeneSymbol;
                 const data = oncoprint.props.store.geneMolecularDataCache.result!.get(query)!.data!;
@@ -734,8 +730,44 @@ export function makeHeatmapTracksMobxPromise(oncoprint:ResultsViewOncoprint, sam
                     })
                 };
             });
+        },
+        default: []
+    });
+}
+
+function makeTreatmentProfileHeatmapTracksMobxPromise(oncoprint:ResultsViewOncoprint, sampleMode:boolean) {
+    return remoteData<IHeatmapTrackSpec[]>({
+        await:()=>[
+            oncoprint.props.store.samples,
+            oncoprint.props.store.patients,
+            oncoprint.props.store.molecularProfileIdToMolecularProfile,
+            oncoprint.props.store.treatmentMolecularDataCache,
+            oncoprint.props.store.treatmentLinkMap
+        ],
+        invoke:async()=>{
+
+            const molecularProfileIdToMolecularProfile = oncoprint.props.store.molecularProfileIdToMolecularProfile.result!;
+            const molecularProfileIdToHeatmapTracks = oncoprint.molecularProfileIdToHeatmapTracks;
+            const treatmentLinkMap = oncoprint.props.store.treatmentLinkMap.result!;
+
+            const treatmentProfiles = _.filter(molecularProfileIdToHeatmapTracks.values(), d => d.molecularAlterationType === AlterationTypeConstants.TREATMENT_RESPONSE);
+            const neededTreatments = _.flatten(treatmentProfiles.map(v=>v.entities.keys()));
+            await oncoprint.props.store.treatmentCache.getPromise(neededTreatments.map(g=>({treatmentId:g})), true);
             
-            let treatmentHeatmapTracks:IHeatmapTrackSpec[] = treatmentCacheQueries.map(query=>{
+            const cacheQueries = _.flatten(treatmentProfiles.map(entry=>(
+                entry.entities.keys().map(g=>({
+                    molecularProfileId: entry.molecularProfileId,
+                    treatmentId: oncoprint.props.store.treatmentCache.get({ treatmentId:g })!.data!.treatmentId,
+                    treatmentName: oncoprint.props.store.treatmentCache.get({ treatmentId:g })!.data!.name
+                }))
+            )));
+
+            await oncoprint.props.store.treatmentMolecularDataCache.result!.getPromise(cacheQueries, true);
+
+            const samples = oncoprint.props.store.samples.result!;
+            const patients = oncoprint.props.store.patients.result!;
+
+            const tracks = cacheQueries.map(query=>{
 
                 const molecularProfileId = query.molecularProfileId;
                 const profile = molecularProfileIdToMolecularProfile[molecularProfileId];
@@ -779,8 +811,7 @@ export function makeHeatmapTracksMobxPromise(oncoprint:ResultsViewOncoprint, sam
                     })
                 };
             });
-
-            return (geneHeatmapTracks).concat(treatmentHeatmapTracks);
+            return tracks;
         },
         default: []
     });
@@ -917,6 +948,35 @@ export function makeGenesetHeatmapTracksMobxPromise(
         },
         default: []
     });
+}
+
+export function extractTreatmentSelections(text:string, selectedTreatments:ISelectOption[], treatmentsMap:{[treatmentId:string]:ISelectOption}):string {
+
+    // get values from input string
+    const elements = splitHeatmapTextField(text);
+
+    // check values for valid treatment ids
+    const selectedKeys:string[] = _.map(selectedTreatments,'value');
+    const detectedTreatments:string[] = [];
+    _.each(elements, (d:string)=> {
+        if (d in treatmentsMap) {
+            detectedTreatments.push(d);
+            if (! selectedKeys.includes(d)) {
+                selectedTreatments.push( treatmentsMap[d] );
+            }
+        }
+    });
+
+    // remove valid treatment ids from the input string
+    if (detectedTreatments.length > 0) {
+        _.each(detectedTreatments, (d:string) => {
+            text = text.replace(d, "");
+        })
+    }
+
+    // return the input string
+    return text.trim().replace("\t+","\t").replace(" +"," ");
+
 }
 
 export function splitHeatmapTextField(text:string):string[] {
