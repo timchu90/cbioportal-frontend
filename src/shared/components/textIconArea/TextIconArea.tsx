@@ -32,7 +32,7 @@ export interface ITextIconAreaItemProps {
 class TextIconArea extends React.Component<ITextIconAreaProps, {text:string}> {
 
     // Shomehow the textare is not able to listen to updates of this field
-    // from the parent with MobX. Instead, the parent callback 'onChange'
+    // from the parent with MobX. Instead, the parent callback 'onChangeTextArea'
     // returns a string that is used to update the textarea.
     @observable textAreaContent:string = "";
     timeout:NodeJS.Timer|undefined = undefined;
@@ -61,7 +61,7 @@ class TextIconArea extends React.Component<ITextIconAreaProps, {text:string}> {
         this.stopTimedSubmit();
 
         this.timeout = setTimeout(function() {
-            this.textAreaContent = this.props.onChange(this.textAreaContent);
+            this.textAreaContent = this.props.onChangeTextArea(this.textAreaContent);
             this.stopTimedSubmit();
         }.bind(this), this.TIMEOUT_DELAY)
 
