@@ -920,5 +920,6 @@ export function makeGenesetHeatmapTracksMobxPromise(
 }
 
 export function splitHeatmapTextField(text:string):string[] {
-    return _.uniq(text.split(/[,\s\n]/));
+    text = text.replace(/[,\s\n]+/g," ").trim();
+    return _.uniq(text.split(/[,\s\n]+/));
 }

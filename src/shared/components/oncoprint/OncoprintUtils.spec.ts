@@ -419,31 +419,35 @@ describe('OncoprintUtils', () => {
 });
 
 describe('Split heatmap text field', () => {
-    it('Recognizes spaces', () => {
+    it('Splits around spaces', () => {
         const elements = splitHeatmapTextField("A B C");
         assert.equal(elements.length, 3);
     });
-    it('Recognizes tabs', () => {
+    it('Splits around tabs', () => {
         const elements = splitHeatmapTextField("A   B   C");
         assert.equal(elements.length, 3);
     });
-    it("Recognizes comma's", () => {
+    it("Splits around comma's", () => {
         const elements = splitHeatmapTextField("A,B,C");
         assert.equal(elements.length, 3);
     });
-    it("Recognizes comma's and spaces", () => {
+    it("Splits around comma's and spaces", () => {
         const elements = splitHeatmapTextField("A, B, C");
         assert.equal(elements.length, 3);
     });
-    it("Recognizes comma's and tabs", () => {
+    it("Splits around comma's and tabs", () => {
         const elements = splitHeatmapTextField("A,  B,  C");
         assert.equal(elements.length, 3);
     });
-    it("Recognizes EOL's", () => {
+    it("Splits around EOL's", () => {
         const elements = splitHeatmapTextField(`
         A
         B
         C`);
         assert.equal(elements.length, 3);
+    });
+    it("Removes duplicate entries", () => {
+        const elements = splitHeatmapTextField("A B B");
+        assert.equal(elements.length, 2);
     });
 });

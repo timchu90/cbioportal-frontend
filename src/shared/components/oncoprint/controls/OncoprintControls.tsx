@@ -27,6 +27,7 @@ import autobind from "autobind-decorator";
 import {SingleGeneQuery} from "../../../lib/oql/oql-parser";
 import {Treatment} from "shared/api/generated/CBioPortalAPIInternal";
 import TextIconArea, { ITextIconAreaItemProps } from "shared/components/textIconArea/TextIconArea";
+import { splitHeatmapTextField } from "../OncoprintUtils";
 const CheckedSelect = require("react-select-checked").CheckedSelect;
 
 export interface IOncoprintControlsHandlers {
@@ -421,7 +422,7 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
     private onChangeTreamentTextArea(text:string):string {
 
         // get values from input string
-        const elements = this.splitTextField(text);
+        const elements = splitHeatmapTextField(text);
 
         // check values for valid treatment ids
         const selectedKeys:string[] = _.map(this._selectedTreatmentOptions,'value');
@@ -444,10 +445,6 @@ export default class OncoprintControls extends React.Component<IOncoprintControl
 
         // return the input string
         return text.trim().replace("\t+","\t").replace(" +"," ");
-    }
-
-    private splitTextField(text:string):string[] {
-        return _.uniq(text.split(/[,\s\n]/));
     }
 
     @autobind
