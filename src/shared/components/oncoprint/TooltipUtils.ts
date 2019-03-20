@@ -126,8 +126,8 @@ export function makeHeatmapTrackTooltip(genetic_alteration_type:MolecularProfile
     return function (dataUnderMouse:any[]) {
         
         let data_header = '';
-        let firstTextElement = 'N/A';
-        let secondTextElement = '';
+        let valueTextElement = 'N/A';
+        let categoryTextElement = '';
 
         switch(genetic_alteration_type) {
             case AlterationTypeConstants.MRNA_EXPRESSION:
@@ -162,24 +162,34 @@ export function makeHeatmapTrackTooltip(genetic_alteration_type:MolecularProfile
         
         if (profileDataCount > 0) {
             const profileDisplayValue = (profileDataSum/profileDataCount).toFixed(2);
-            if (profileDataCount === 0) {
-                firstTextElement = profileDisplayValue;
+            if (profileDataCount === 1) {
+                valueTextElement = profileDisplayValue;
             } else {
-                firstTextElement = `${profileDisplayValue} (average of ${profileDataCount} values)`;
+                valueTextElement = `${profileDisplayValue} (average of ${profileDataCount} values)`;
             }
         }
         
         if (categoryCount > 0) {
             if (profileDataCount === 0 && categoryCount === 1) {
-                firstTextElement = profileCategories[0];
+                categoryTextElement = profileCategories[0];
             } else if (profileDataCount > 0 && categoryCount === 1) {
-                secondTextElement = `'${profileCategories[0]}' group`;
+                categoryTextElement = `${profileCategories[0]}`;
             } else {
-                secondTextElement = `'${_.uniq(profileCategories).join("', '")}' groups of ${categoryCount} data points)`;
+                categoryTextElement = `${_.uniq(profileCategories).join(", ")} (${categoryCount} data points)`;
             }
         }
 
-        const ret = data_header + '<b>' + firstTextElement + '</b>' + secondTextElement !== ''?' and ':''  + '<b>' + secondTextElement + '</b><br/>';
+        let ret = data_header;
+        if (valueTextElement !== 'N/A' || categoryCount === 0) {
+            ret += '<b>' + valueTextElement + '</b>';
+        }
+        if (valueTextElement !== 'N/A' && categoryCount > 0) {
+            ret += ' and ';
+        }
+        if (categoryCount > 0) {
+            ret += '<b>' + categoryTextElement + '</b>';
+        }
+        ret += '<br />';
         return $('<div>').addClass(TOOLTIP_DIV_CLASS).append(getCaseViewElt(dataUnderMouse, !!link_id)).append("<br/>").append(ret);
     };
 };
