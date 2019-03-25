@@ -788,7 +788,8 @@ function makeTreatmentProfileHeatmapTracksMobxPromise(oncoprint:ResultsViewOncop
                         'treatment_id',
                         treatmentId,
                         sampleMode ? samples : patients,
-                        data
+                        data,
+                        sortOrder
                     ),
                     pivotThreshold: pivotThreshold,
                     sortOrder: sortOrder,
