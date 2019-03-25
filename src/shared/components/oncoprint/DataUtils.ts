@@ -300,11 +300,6 @@ export function fillHeatmapTrackDatum<T extends IBaseHeatmapTrackDatum, K extend
             throw Error("Unexpectedly received multiple heatmap profile data for one sample");
         } else {
 
-            // TODO !! here there is a logic problem here. It is assumed that larger `pofile_data` values 
-            // are better than smaller. With treatment profiles this is not neccerarily the case. 
-            // F.i. smaller IC50 values are better, larger AUC values are better. How now to sensibly aggregate 
-            // multiple values into the most significant?
-
             // aggregate samples for this patient by selecting the highest absolute (Z-)score
             // default: the most extreme value (pos. or neg.) is shown for data
             // sortOrder=ASC: the smallest value is shown for data
