@@ -69,6 +69,9 @@ type TrackSpecsWithDynamicGroups = {
     heatmapTracks: {trackGroupIndex: number}[],
     genesetHeatmapTracks: {trackGroupIndex: number}[]
 };
+
+type TreatmentProfileToTrackIdMap = {[molecularProfileId:string]: undefined|TrackId};
+
 export function transitionTrackGroupSortPriority(
     nextProps: TrackSpecsWithDynamicGroups,
     prevProps: Partial<TrackSpecsWithDynamicGroups>,
@@ -371,7 +374,8 @@ function transitionTracks(
         genetic: undefined as undefined|TrackId,
         genesetHeatmap: undefined as undefined|TrackId,
         heatmap: undefined as undefined|TrackId,
-        heatmap01:undefined as undefined|TrackId
+        heatmap01:undefined as undefined|TrackId,
+        treatment: {} as any as TreatmentProfileToTrackIdMap
     };
     const trackSpecKeyToTrackId = getTrackSpecKeyToTrackId();
     if (prevProps.geneticTracks && prevProps.geneticTracks.length && !hasGeneticTrackRuleSetChanged(nextProps, prevProps)) {
@@ -409,17 +413,17 @@ function transitionTracks(
         }
     }
     
-    // collect max trackId (last assigned one) for each treament profile
-    // the last assigned track id is used to reference the current layout of the track group 
+    // collect max trackId (last assigned one) for each treatment profile
+    // the last assigned track id is used to reference the current layout of the track group
     // Note: the resolution of `trackIds for ruleset sharing` is different from
     // the section above because different formatting is applied to each treatment profile (molecularProfileId)
-    let treatmentProfileSpecTrackId = _.chain(prevProps.heatmapTracks)
+    trackIdForRuleSetSharing.treatment = _.chain(prevProps.heatmapTracks)
                                     .filter((s:IHeatmapTrackSpec) => s.molecularAlterationType === AlterationTypeConstants.TREATMENT_RESPONSE)
                                     .groupBy((track:IHeatmapTrackSpec) => track.molecularProfileId)
                                     .mapValues( (o:IHeatmapTrackSpec[]) => _(o).map('key').map((key:string) => trackSpecKeyToTrackId[key]).max() )
                                     .value();
 
-                                    // find the max treatment profile value in the next heatmap track group
+    // find the max treatment profile value in the next heatmap track group
     // max value is used to create a custom legend for the track group
     let treatmentProfileMaxValue = _.chain(nextProps.heatmapTracks)
                                     .filter((s:IHeatmapTrackSpec) => s.molecularAlterationType === AlterationTypeConstants.TREATMENT_RESPONSE)
@@ -443,8 +447,6 @@ function transitionTracks(
     }
     // Oncce tracks have been added and deleted, transition order
     transitionGeneticTrackOrder(nextProps, prevProps, oncoprint, getTrackSpecKeyToTrackId);
-
-
 
     // Transition clinical tracks
     const prevClinicalTracks = _.keyBy(prevProps.clinicalTracks || [], (track:ClinicalTrackSpec)=>track.key);
@@ -480,7 +482,6 @@ function transitionTracks(
 
         // add treatment layout/formatting information to the track specs
         track.maxProfileValue = treatmentProfileMaxValue[track.molecularProfileId];
-        track.ruleSetTrackId = treatmentProfileSpecTrackId[track.molecularProfileId];
 
         transitionHeatmapTrack(track, prevHeatmapTracks[track.key], getTrackSpecKeyToTrackId,
             () => undefined, oncoprint, nextProps, {}, trackIdForRuleSetSharing, 
@@ -494,7 +495,6 @@ function transitionTracks(
 
             // add treatment layout/formatting information to the track specs
             track.maxProfileValue = treatmentProfileMaxValue[track.molecularProfileId];
-            track.ruleSetTrackId = treatmentProfileSpecTrackId[track.molecularProfileId];
 
             transitionHeatmapTrack(undefined, prevHeatmapTracks[track.key], getTrackSpecKeyToTrackId,
                                 () => undefined, oncoprint, nextProps, {}, trackIdForRuleSetSharing,
@@ -869,7 +869,7 @@ function transitionHeatmapTrack(
     oncoprint:OncoprintJS<any>,
     nextProps:IOncoprintProps,
     prevProps:object,
-    trackIdForRuleSetSharing:{heatmap?:TrackId, heatmap01?:TrackId},
+    trackIdForRuleSetSharing:{heatmap?:TrackId, heatmap01?:TrackId, treatment?: TreatmentProfileToTrackIdMap},
     expansionParentKey?:string
 ) {
     const trackSpecKeyToTrackId = getTrackSpecKeyToTrackId();
@@ -918,7 +918,7 @@ function transitionHeatmapTrack(
                 trackIdForRuleSetSharingKey = undefined;
         
                 // register the new track id so that it will determine formatting of the track group
-                let rulesetTrackId = (nextSpec as IHeatmapTrackSpec).ruleSetTrackId;
+                const rulesetTrackId = trackIdForRuleSetSharing.treatment![nextSpec.molecularProfileId];
                 if (rulesetTrackId) {
                     oncoprint.shareRuleSet(newTrackId, rulesetTrackId);
                 }
@@ -939,7 +939,7 @@ function transitionHeatmapTrack(
                 // register the new track id so that its is formatted by the existing track group
                 oncoprint.shareRuleSet(trackIdForRuleSetSharing[trackIdForRuleSetSharingKey]!, newTrackId);
             }
-            trackIdForRuleSetSharing[trackIdForRuleSetSharingKey!] = newTrackId;
+            trackIdForRuleSetSharing[trackIdForRuleSetSharingKey] = newTrackId;
         }
 
     } else if (nextSpec && prevSpec) {
@@ -955,7 +955,7 @@ function transitionHeatmapTrack(
             oncoprint.setTrackInfo(trackId, nextSpec.info);
         }
         // re-register the shared rule set
-        let rulesetTrackId = (nextSpec as IHeatmapTrackSpec).ruleSetTrackId;
+        const rulesetTrackId = trackIdForRuleSetSharing.treatment![nextSpec.molecularProfileId];
         if (rulesetTrackId) {
             oncoprint.shareRuleSet(rulesetTrackId, trackId);
         }
