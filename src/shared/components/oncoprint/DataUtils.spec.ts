@@ -6,7 +6,8 @@ import {
 import {
     GeneticTrackDatum,
     IGeneHeatmapTrackDatum,
-    IGenesetHeatmapTrackDatum
+    IGenesetHeatmapTrackDatum,
+    ITreatmentHeatmapTrackDatum
 } from "shared/components/oncoprint/Oncoprint";
 import {AlterationTypeConstants, AnnotatedExtendedAlteration} from "../../../pages/resultsView/ResultsViewPageStore";
 import {
@@ -1190,7 +1191,7 @@ describe("DataUtils", ()=>{
                    {sampleId:"sample", studyId:"study"} as Sample,
                    data
                ),
-               {hugo_gene_symbol:"gene", study_id:"study", profile_data:3, category: undefined, thresholdType: undefined}
+               {hugo_gene_symbol:"gene", study_id:"study", profile_data:3}
            );
        });
        it("throws exception if more than one data given for sample",()=>{
@@ -1224,7 +1225,7 @@ describe("DataUtils", ()=>{
                    {patientId:"patient", studyId:"study"} as Sample,
                    data
                ),
-               {hugo_gene_symbol:"gene", study_id:"study", profile_data:3, category: undefined, thresholdType: undefined}
+               {hugo_gene_symbol:"gene", study_id:"study", profile_data:3}
            );
 
            data = [
@@ -1238,7 +1239,7 @@ describe("DataUtils", ()=>{
                    {patientId:"patient", studyId:"study"} as Sample,
                    data
                ),
-               {hugo_gene_symbol:"gene", study_id:"study", profile_data:2, category: undefined, thresholdType: undefined}
+               {hugo_gene_symbol:"gene", study_id:"study", profile_data:2}
            );
 
            data = [
@@ -1254,7 +1255,7 @@ describe("DataUtils", ()=>{
                    {patientId:"patient", studyId:"study"} as Sample,
                    data
                ),
-               {hugo_gene_symbol:"gene", study_id:"study", profile_data:4, category: undefined, thresholdType: undefined}
+               {hugo_gene_symbol:"gene", study_id:"study", profile_data:4}
            );
 
            data = [
@@ -1270,7 +1271,7 @@ describe("DataUtils", ()=>{
                    {patientId:"patient", studyId:"study"} as Sample,
                    data
                ),
-               {hugo_gene_symbol:"gene", study_id:"study", profile_data:-10, category: undefined, thresholdType: undefined}
+               {hugo_gene_symbol:"gene", study_id:"study", profile_data:-10}
            );
        });
        it("fills data for a gene set if that's requested", ()=>{
@@ -1284,7 +1285,25 @@ describe("DataUtils", ()=>{
            );
            assert.deepEqual(
                partialTrackDatum,
-               {geneset_id:"MY_FAVORITE_GENE_SET-3", study_id:"study", profile_data:7, category: undefined, thresholdType: undefined}
+               {geneset_id:"MY_FAVORITE_GENE_SET-3", study_id:"study", profile_data:7}
+           );
+       });
+
+       it('adds thresholdType and category to trackDatum', () => {
+           let data = [
+            {value:8, thresholdType: '>' as '>'},
+           ];
+           const partialTrackDatum = {};
+           fillHeatmapTrackDatum<ITreatmentHeatmapTrackDatum, "treatment_id">(
+            partialTrackDatum,
+            "treatment_id",
+            "TREATMENT_ID_1",
+            {patientId:"patient", studyId:"study"} as Sample,
+            data
+           )
+           assert.deepEqual(
+            partialTrackDatum,
+            {treatment_id: "TREATMENT_ID_1", study_id:"study", profile_data:-10, thresholdType: '>', category: '>8.00'}
            );
        });
    });

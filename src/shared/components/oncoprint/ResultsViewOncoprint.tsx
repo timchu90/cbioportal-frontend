@@ -62,10 +62,14 @@ export const TREATMENT_LIST_URL_PARAM = "treatment_list";
 
 const CLINICAL_TRACK_KEY_PREFIX = "CLINICALTRACK_";
 
+/*  Each heatmap track group can hold tracks of a single entity type.
+    Implemented entity types are genes and treatments. In the 
+    HeatmapTrackGroupRecord type the `entities` member refers to 
+    hugo_gene_symbols (for genes) or to treatment_id's (for treatments). */
 type HeatmapTrackGroupRecord = {
     trackGroupIndex:number,
     molecularAlterationType:string,
-    entities:ObservableMap<boolean>,
+    entities:ObservableMap<boolean>, // map of hugo_gene_symbols or treatment_id's
     molecularProfileId:string
 }
 

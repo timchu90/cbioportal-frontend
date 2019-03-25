@@ -290,8 +290,10 @@ export function fillHeatmapTrackDatum<T extends IBaseHeatmapTrackDatum, K extend
         trackDatum.na = true;
     } else if (data.length === 1) {
         trackDatum.profile_data = data[0].value;
-        trackDatum.thresholdType = data[0].thresholdType;
-        trackDatum.category = trackDatum.profile_data && trackDatum.thresholdType? `${trackDatum.thresholdType}${trackDatum.profile_data.toFixed(2)}` : undefined;
+        if (data[0].thresholdType) {
+            trackDatum.thresholdType = data[0].thresholdType;
+            trackDatum.category = trackDatum.profile_data && trackDatum.thresholdType? `${trackDatum.thresholdType}${trackDatum.profile_data.toFixed(2)}` : undefined;
+        }
     } else {
         if (isSample(case_)) {
             throw Error("Unexpectedly received multiple heatmap profile data for one sample");
