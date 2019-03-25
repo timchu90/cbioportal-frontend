@@ -125,6 +125,7 @@ export interface IHeatmapTrackSpec extends IBaseHeatmapTrackSpec {
     pivotThreshold?: number;
     sortOrder?: SortOrder;
     maxProfileValue?: number;
+    minProfileValue?: number;
     category?:string;
 }
 export interface IGenesetHeatmapTrackSpec extends IBaseHeatmapTrackSpec {

@@ -423,13 +423,16 @@ function transitionTracks(
                                     .mapValues( (o:IHeatmapTrackSpec[]) => _(o).map('key').map((key:string) => trackSpecKeyToTrackId[key]).max() )
                                     .value();
 
-    // find the max treatment profile value in the next heatmap track group
-    // max value is used to create a custom legend for the track group
-    let treatmentProfileMaxValue = _.chain(nextProps.heatmapTracks)
+    const treatmentProfilesMap = _.chain(nextProps.heatmapTracks)
                                     .filter((s:IHeatmapTrackSpec) => s.molecularAlterationType === AlterationTypeConstants.TREATMENT_RESPONSE)
                                     .groupBy((track:IHeatmapTrackSpec) => track.molecularProfileId)
-                                    .mapValues( (o:IHeatmapTrackSpec[]) => _(o).flatMap('data').filter((d:IBaseHeatmapTrackDatum) => ! d.category).map('profile_data').max() )
+                                    .mapValues( (o:IHeatmapTrackSpec[]) => _(o).flatMap('data').filter((d:IBaseHeatmapTrackDatum) => ! d.category).map('profile_data').value() )
                                     .value();
+
+    // find the max and min treatment profile value in the next heatmap track group
+    // max and min value is used to create a custom legend for the track group
+    const treatmentProfileMaxValues = _.mapValues(treatmentProfilesMap, (profile_data:number[]) => { return _.max(profile_data) });
+    const treatmentProfileMinValues = _.mapValues(treatmentProfilesMap, (profile_data:number[]) => { return _.min(profile_data) });
 
     // Transition genetic tracks
     const prevGeneticTracks = _.keyBy(prevProps.geneticTracks || [], (track:GeneticTrackSpec)=>track.key);
@@ -481,7 +484,8 @@ function transitionTracks(
     for (let track of nextProps.heatmapTracks) {
 
         // add treatment layout/formatting information to the track specs
-        track.maxProfileValue = treatmentProfileMaxValue[track.molecularProfileId];
+        track.maxProfileValue = treatmentProfileMaxValues[track.molecularProfileId];
+        track.minProfileValue = treatmentProfileMinValues[track.molecularProfileId];
 
         transitionHeatmapTrack(track, prevHeatmapTracks[track.key], getTrackSpecKeyToTrackId,
             () => undefined, oncoprint, nextProps, {}, trackIdForRuleSetSharing, 
@@ -494,7 +498,8 @@ function transitionTracks(
         if (prevHeatmapTracks.hasOwnProperty(track.key)) {
 
             // add treatment layout/formatting information to the track specs
-            track.maxProfileValue = treatmentProfileMaxValue[track.molecularProfileId];
+            track.maxProfileValue = treatmentProfileMaxValues[track.molecularProfileId];
+            track.minProfileValue = treatmentProfileMinValues[track.molecularProfileId];
 
             transitionHeatmapTrack(undefined, prevHeatmapTracks[track.key], getTrackSpecKeyToTrackId,
                                 () => undefined, oncoprint, nextProps, {}, trackIdForRuleSetSharing,

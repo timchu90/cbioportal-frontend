@@ -212,7 +212,7 @@ function getTreatmentTrackRuleSetParams(trackSpec: IHeatmapTrackSpec):RuleSetPar
     const categoryColorOptions = [ 'rgba(230,159,0,1)', 'rgba(0,158,115,1)', 'rgba(204,121,167,1)', 'rgba(240,228,66,1)', 'rgba(86,180,233,1)' ];
 
     const maxValue:number = trackSpec.maxProfileValue || _(dataPoints as ITreatmentHeatmapTrackDatum[]).filter((d:ITreatmentHeatmapTrackDatum) => !d.category).map('profile_data').max()!;
-    const minValue:number = trackSpec.maxProfileValue || _(dataPoints as ITreatmentHeatmapTrackDatum[]).filter((d:ITreatmentHeatmapTrackDatum) => !d.category).map('profile_data').min()!;
+    const minValue:number = trackSpec.minProfileValue || _(dataPoints as ITreatmentHeatmapTrackDatum[]).filter((d:ITreatmentHeatmapTrackDatum) => !d.category).map('profile_data').min()!;
     const categories = _(dataPoints as ITreatmentHeatmapTrackDatum[]).filter((d:ITreatmentHeatmapTrackDatum) => !!d.category).map('category').uniq().value();
 
     // when all observed values are negative or positive
