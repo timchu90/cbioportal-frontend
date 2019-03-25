@@ -648,8 +648,7 @@ export default class ResultsViewOncoprint extends React.Component<IResultsViewOn
 
     private addHeatmapTracks(molecularProfileId:string, entities:string[]) {
         
-        let profile:MolecularProfile = this.props.store.molecularProfileIdToMolecularProfile.result![molecularProfileId];
-        // TODO fix the Promise dependency in this function (remove if profile statement)
+        const profile:MolecularProfile = this.props.store.molecularProfileIdToMolecularProfile.result[molecularProfileId];
         if (profile) {
             let trackGroup = this.molecularProfileIdToHeatmapTracks.get(molecularProfileId);
             if (!trackGroup) {
