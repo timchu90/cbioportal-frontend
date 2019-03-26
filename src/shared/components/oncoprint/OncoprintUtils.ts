@@ -216,8 +216,8 @@ function getTreatmentTrackRuleSetParams(trackSpec: IHeatmapTrackSpec):RuleSetPar
 
     // when all observed values are negative or positive
     // assume that 0 should be used in the legend
-    const rightBoundaryValue = maxValue <= 0? 0 : maxValue;
-    const leftBoundaryValue = minValue >= 0? 0 : minValue;
+    const rightBoundaryValue = Math.max(0, maxValue);
+    const leftBoundaryValue = Math.min(0, minValue);
     value_range = [leftBoundaryValue, rightBoundaryValue];                          // larger concentrations are `better` (ASC)
 
     // only include the pivotValue in the legend when covered by the current value_range
