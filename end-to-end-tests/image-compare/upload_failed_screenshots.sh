@@ -8,9 +8,9 @@ NC='\033[0m'
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cd ${DIR}/../screenshots
-if (ls $DIFF_SCREENSHOT_DIR_NAME/*.png 2> /dev/null > /dev/null); then
+if (ls diff/*.png 2> /dev/null > /dev/null); then
     references=()
-    for diff in $DIFF_SCREENSHOT_DIR_NAME/*.png; do
+    for diff in diff/*.png; do
         reference=${diff/diff/reference}
         references=( ${references[@]} $reference )
         echo "FAILED SCREENSHOT TEST: ${reference}"
