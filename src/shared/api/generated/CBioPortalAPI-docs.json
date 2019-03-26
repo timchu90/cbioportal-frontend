@@ -2023,7 +2023,7 @@
         "tags": [
           "Patients"
         ],
-        "summary": "fetchPatients",
+        "summary": "Fetch patients by ID",
         "operationId": "fetchPatientsUsingPOST",
         "consumes": [
           "application/json"
@@ -4560,8 +4560,15 @@
         "name": {
           "type": "string"
         },
+        "pivotThreshold": {
+          "type": "number",
+          "format": "float"
+        },
         "showProfileInAnalysisTab": {
           "type": "boolean"
+        },
+        "sortOrder": {
+          "type": "string"
         },
         "study": {
           "$ref": "#/definitions/CancerStudy"
