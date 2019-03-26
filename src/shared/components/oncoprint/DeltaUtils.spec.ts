@@ -13,7 +13,6 @@ import {
     IHeatmapTrackSpec,
     IOncoprintProps
 } from "./Oncoprint";
-import { SortOrder } from "shared/api/generated/CBioPortalAPIInternal";
 
 describe("Oncoprint DeltaUtils", ()=>{
     describe("numTracksWhoseDataChanged", ()=>{
@@ -545,7 +544,7 @@ describe("Oncoprint DeltaUtils", ()=>{
                 'study': {} as any,
                 'studyId': 'study1',
                 'pivotThreshold': 1,
-                'sortOrder': SortOrder.ASC} as MolecularProfile
+                'sortOrder': "ASC"} as MolecularProfile
         };};
 
         it('receive track id for ruleset sharing of last added treatment profile', () => {

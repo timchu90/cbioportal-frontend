@@ -1,7 +1,6 @@
 import * as React from "react";
 import OncoprintJS, {TrackId, CustomTrackOption} from "oncoprintjs";
 import {GenePanelData, MolecularProfile} from "../../api/generated/CBioPortalAPI";
-import {SortOrder} from "../../api/generated/CBioPortalAPIInternal";
 import {observer} from "mobx-react";
 import {computed} from "mobx";
 import {transition} from "./DeltaUtils";
@@ -121,9 +120,9 @@ export interface IHeatmapTrackSpec extends IBaseHeatmapTrackSpec {
     labelColor?: string;
     trackLinkUrl?: string | undefined;
     onRemove: () => void;
-    molecularProfileName?: String
+    molecularProfileName?: string;
     pivotThreshold?: number;
-    sortOrder?: SortOrder;
+    sortOrder?: string;
     maxProfileValue?: number;
     minProfileValue?: number;
     category?:string;

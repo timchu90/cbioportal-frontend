@@ -951,7 +951,7 @@ function transitionHeatmapTrack(
         if (nextSpec.molecularAlterationType === AlterationTypeConstants.TREATMENT_RESPONSE
              && trackIdForRuleSetSharing.treatment![nextSpec.molecularProfileId] !== undefined) {
                  const rulesetTrackId = trackIdForRuleSetSharing.treatment![nextSpec.molecularProfileId];
-                 oncoprint.shareRuleSet(rulesetTrackId, trackId);
+                 oncoprint.shareRuleSet(rulesetTrackId!, trackId);
         }
         // set tooltip, its cheap
         oncoprint.setTrackTooltipFn(trackId, makeHeatmapTrackTooltip(nextSpec.molecularAlterationType, true));

@@ -18,7 +18,7 @@ import {
 import {isSample, isSampleList} from "../../lib/CBioPortalAPIUtils";
 import {getSimplifiedMutationType, SimplifiedMutationType} from "../../lib/oql/AccessorsForOqlFilter";
 import _ from "lodash";
-import {MutationSpectrum, SortOrder} from "../../api/generated/CBioPortalAPIInternal";
+import {MutationSpectrum} from "../../api/generated/CBioPortalAPIInternal";
 import {CoverageInformation, ExtendedClinicalAttribute} from "../../../pages/resultsView/ResultsViewPageStoreUtils";
 import { MUTATION_STATUS_GERMLINE } from "shared/constants";
 import {SpecialAttribute} from "../../cache/ClinicalDataCache";
@@ -282,7 +282,7 @@ export function fillHeatmapTrackDatum<T extends IBaseHeatmapTrackDatum, K extend
     featureId: T[K],
     case_:Sample|Patient,
     data?: {value: number, thresholdType?: ">"|"<" }[],
-    sortOrder?: SortOrder
+    sortOrder?: string
 ) {
     trackDatum[featureKey] = featureId;
     trackDatum.study_id = case_.studyId;
@@ -307,10 +307,10 @@ export function fillHeatmapTrackDatum<T extends IBaseHeatmapTrackDatum, K extend
             let representingDatum:{value: number, thresholdType?: ">"|"<" }|undefined;
 
             switch (sortOrder) {
-                case SortOrder.ASC:
+                case "ASC":
                     representingDatum = _.minBy(data, 'value');
                     break;
-                case SortOrder.DESC:
+                case "DESC":
                     representingDatum = _.maxBy(data, 'value');
                     break;
                 default:
@@ -334,7 +334,7 @@ export function makeHeatmapTrackData<T extends IBaseHeatmapTrackDatum, K extends
     featureId: T[K],
     cases:Sample[]|Patient[],
     data: {value: number, uniquePatientKey: string, uniqueSampleKey: string, thresholdType?: string}[],
-    sortOrder?: SortOrder
+    sortOrder?: string
 ): T[] {
     if (!cases.length) {
         return [];

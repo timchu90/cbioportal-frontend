@@ -44,12 +44,11 @@ import {
 } from "../../api/generated/CBioPortalAPI";
 import {clinicalAttributeIsPROFILEDIN, SpecialAttribute} from "../../cache/ClinicalDataCache";
 import {STUDY_VIEW_CONFIG} from "../../../pages/studyView/StudyViewConfig";
-import TreatmentMolecularDataCache from "shared/cache/TreatmentMolecularDataCache";
 import GeneMolecularDataCache from "shared/cache/GeneMolecularDataCache";
 import { AlterationTypes } from "pages/patientView/copyNumberAlterations/column/CnaColumnFormatter";
-import { TreatmentMolecularData, SortOrder } from "shared/api/generated/CBioPortalAPIInternal";
 import { isNumber } from "util";
 import { ISelectOption } from "./controls/OncoprintControls";
+import {TreatmentMolecularDataEnhanced} from "shared/cache/TreatmentMolecularDataCache.ts"
 
 interface IGenesetExpansionMap {
         [genesetTrackKey: string]: IHeatmapTrackSpec[];
@@ -232,7 +231,7 @@ function getTreatmentTrackRuleSetParams(trackSpec: IHeatmapTrackSpec):RuleSetPar
         value_stop_points = [leftBoundaryValue, pivotThreshold, rightBoundaryValue];
     }
     
-    if (sortOrder === SortOrder.DESC) {                                             // smaller concentrations are `better` (DESC)
+    if (sortOrder === "DESC") {                                             // smaller concentrations are `better` (DESC)
         value_range = _.reverse(value_range);
         value_stop_points = _.reverse(value_stop_points);
     }
@@ -773,7 +772,7 @@ function makeTreatmentProfileHeatmapTracksMobxPromise(oncoprint:ResultsViewOncop
                 const profile = molecularProfileIdToMolecularProfile[molecularProfileId];
 
                 const treatmentId = query.treatmentId;
-                const data:TreatmentMolecularData[] = oncoprint.props.store.treatmentMolecularDataCache.result!.get(query)!.data!;
+                const data:TreatmentMolecularDataEnhanced[] = oncoprint.props.store.treatmentMolecularDataCache.result!.get(query)!.data!;
                 const pivotThreshold = profile.pivotThreshold;
                 const sortOrder = profile.sortOrder;
 
