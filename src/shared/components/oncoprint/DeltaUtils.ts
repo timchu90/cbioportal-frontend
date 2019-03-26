@@ -917,36 +917,22 @@ function transitionHeatmapTrack(
         // store relation between React heatmap track specs and OncoprintJS trackIds
         trackSpecKeyToTrackId[nextSpec.key] = newTrackId;
 
-        let trackIdForRuleSetSharingKey:"heatmap"|"heatmap01"|undefined;
-
-        switch (nextSpec.molecularAlterationType) {
-            case AlterationTypeConstants.TREATMENT_RESPONSE:
-
-                trackIdForRuleSetSharingKey = undefined;
-        
-                // register the new track id so that it will determine formatting of the track group
-                const rulesetTrackId = trackIdForRuleSetSharing.treatment![nextSpec.molecularProfileId];
-                if (rulesetTrackId) {
-                    oncoprint.shareRuleSet(newTrackId, rulesetTrackId);
-                }
-
-                break;
-
-            case AlterationTypeConstants.METHYLATION:
-                trackIdForRuleSetSharingKey = "heatmap01"; 
-                break;
-        
-            default:
-                trackIdForRuleSetSharingKey = "heatmap";
-                break;
-        }
-
-        if (trackIdForRuleSetSharingKey) {
-            if (trackIdForRuleSetSharing[trackIdForRuleSetSharingKey]) {
-                // register the new track id so that its is formatted by the existing track group
-                oncoprint.shareRuleSet(trackIdForRuleSetSharing[trackIdForRuleSetSharingKey]!, newTrackId);
+        if (nextSpec.molecularAlterationType !== AlterationTypeConstants.TREATMENT_RESPONSE) {
+            // if the track is a molecular profile, check whether there is an existing ruleset that applies to this track
+            let rulesetTrackId;
+            if (nextSpec.molecularAlterationType !== AlterationTypeConstants.METHYLATION && trackIdForRuleSetSharing.heatmap01 !== undefined) {
+                rulesetTrackId = trackIdForRuleSetSharing.heatmap01;
+            } else if (trackIdForRuleSetSharing.heatmap !== undefined) {
+                rulesetTrackId = trackIdForRuleSetSharing.heatmap;
             }
-            trackIdForRuleSetSharing[trackIdForRuleSetSharingKey] = newTrackId;
+            // if so, associate the is of the new track so that its is formatted by the existing ruleset
+            if (rulesetTrackId !== undefined) {
+                oncoprint.shareRuleSet(rulesetTrackId, newTrackId);
+            }
+        } else {
+            // if the track is a treatment profile, always add to trackIdForRuleSetSharing
+            // this makes the trackId available for existing tracks fir ruleset sharing
+            trackIdForRuleSetSharing.treatment![nextSpec.molecularProfileId] = newTrackId;
         }
 
     } else if (nextSpec && prevSpec) {
@@ -961,12 +947,12 @@ function transitionHeatmapTrack(
         if (nextSpec.info !== prevSpec.info && nextSpec.info !== undefined) {
             oncoprint.setTrackInfo(trackId, nextSpec.info);
         }
-        // re-register the shared rule set
-        const rulesetTrackId = trackIdForRuleSetSharing.treatment![nextSpec.molecularProfileId];
-        if (rulesetTrackId) {
-            oncoprint.shareRuleSet(rulesetTrackId, trackId);
+        // treatment profile tracks always are associated with the last added added track id
+        if (nextSpec.molecularAlterationType === AlterationTypeConstants.TREATMENT_RESPONSE
+             && trackIdForRuleSetSharing.treatment![nextSpec.molecularProfileId] !== undefined) {
+                 const rulesetTrackId = trackIdForRuleSetSharing.treatment![nextSpec.molecularProfileId];
+                 oncoprint.shareRuleSet(rulesetTrackId, trackId);
         }
-        // }
         // set tooltip, its cheap
         oncoprint.setTrackTooltipFn(trackId, makeHeatmapTrackTooltip(nextSpec.molecularAlterationType, true));
     }
