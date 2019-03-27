@@ -1104,8 +1104,7 @@ export function logScalePossible(
         // molecular profile
         return !!(
             axisSelection.dataSourceId &&
-            !(/zscore/i.test(axisSelection.dataSourceId)) &&
-            /rna_seq/i.test(axisSelection.dataSourceId)
+            logScalePossibleForProfile(axisSelection.dataSourceId)
         );
     } else {
         // clinical attribute
