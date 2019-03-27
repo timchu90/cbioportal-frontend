@@ -928,7 +928,7 @@ function transitionHeatmapTrack(
             // if the track is a molecular profile, check whether there is an existing ruleset that applies to this track
             if (trackIdForRuleSetSharing[rulesetTrackIdKey] !== undefined) {
                 // if so, associate the is of the new track so that its is formatted by the existing ruleset
-                oncoprint.shareRuleSet(trackIdForRuleSetSharing[rulesetTrackIdKey], newTrackId);
+                oncoprint.shareRuleSet(trackIdForRuleSetSharing[rulesetTrackIdKey]!, newTrackId);
             } else {
                 // if not, make this track available to other new tracks for ruleset sharing
                 trackIdForRuleSetSharing[rulesetTrackIdKey] = newTrackId;
