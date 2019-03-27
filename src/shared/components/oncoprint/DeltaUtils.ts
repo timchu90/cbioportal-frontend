@@ -423,13 +423,13 @@ function transitionTracks(
     trackIdForRuleSetSharing.treatment = _.chain(prevProps.heatmapTracks)
                                     .filter((s:IHeatmapTrackSpec) => s.molecularAlterationType === AlterationTypeConstants.TREATMENT_RESPONSE)
                                     .groupBy((track:IHeatmapTrackSpec) => track.molecularProfileId)
-                                    .mapValues( (o:IHeatmapTrackSpec[]) => _(o).map('key').map((key:string) => trackSpecKeyToTrackId[key]).max() )
+                                    .mapValues( (o:IHeatmapTrackSpec[]) => _(o).map((d)=>d.key).map((key:string) => trackSpecKeyToTrackId[key]).max() )
                                     .value();
 
     const treatmentProfilesMap = _.chain(nextProps.heatmapTracks)
                                     .filter((s:IHeatmapTrackSpec) => s.molecularAlterationType === AlterationTypeConstants.TREATMENT_RESPONSE)
                                     .groupBy((track:IHeatmapTrackSpec) => track.molecularProfileId)
-                                    .mapValues( (o:IHeatmapTrackSpec[]) => _(o).flatMap('data').filter((d:IBaseHeatmapTrackDatum) => ! d.category).map('profile_data').value() )
+                                    .mapValues( (o:IHeatmapTrackSpec[]) => _(o).flatMap((d)=>d.data).filter((d:IBaseHeatmapTrackDatum) => ! d.category).map((d)=>d.profile_data).value() )
                                     .value();
 
     // find the max and min treatment profile value in the next heatmap track group

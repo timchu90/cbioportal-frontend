@@ -212,13 +212,13 @@ function getTreatmentTrackRuleSetParams(trackSpec: IHeatmapTrackSpec):RuleSetPar
 
     const maxValue:number = trackSpec.maxProfileValue!;
     const minValue:number = trackSpec.minProfileValue!;
-    const categories = _(dataPoints as ITreatmentHeatmapTrackDatum[]).filter((d:ITreatmentHeatmapTrackDatum) => !!d.category).map('category').uniq().value();
+    const categories = _(dataPoints as ITreatmentHeatmapTrackDatum[]).filter((d:ITreatmentHeatmapTrackDatum) => !!d.category).map((d)=>d.category).uniq().value();
 
     // when all observed values are negative or positive
     // assume that 0 should be used in the legend
     const rightBoundaryValue = Math.max(0, maxValue);
     const leftBoundaryValue = Math.min(0, minValue);
-    value_range = [leftBoundaryValue, rightBoundaryValue];                          // larger concentrations are `better` (ASC)
+    value_range = [leftBoundaryValue, rightBoundaryValue];                  // larger concentrations are `better` (ASC)
 
     // only include the pivotValue in the legend when covered by the current value_range
     if (pivotThreshold <= leftBoundaryValue) {
