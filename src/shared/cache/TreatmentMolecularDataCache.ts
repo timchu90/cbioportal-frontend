@@ -91,7 +91,7 @@ async function fetch(
             } as TreatmentDataFilterCriteria
         })
     );
-    const dataPromises = params.map(param => client.fetchTreatmentDataItemsUsingPOST(param));
+    const dataPromises = params.map(param => client.fetchTreatmentGeneticDataItemsUsingPOST(param));
     const results: TreatmentMolecularData[][] = await Promise.all(dataPromises);
     return augmentQueryResults(queries, results);
 }
