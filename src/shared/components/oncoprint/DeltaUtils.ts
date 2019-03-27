@@ -19,6 +19,7 @@ import {MolecularProfile} from "../../api/generated/CBioPortalAPI";
 import { AlterationTypeConstants } from "pages/resultsView/ResultsViewPageStore";
 import { isNumberData } from "pages/resultsView/plots/PlotsTabUtils";
 import { isNull, isNumber } from "util";
+import { AnyModifier } from "shared/lib/oql/oql-parser";
 
 export function transition(
     nextProps:IOncoprintProps,
@@ -918,16 +919,19 @@ function transitionHeatmapTrack(
         trackSpecKeyToTrackId[nextSpec.key] = newTrackId;
 
         if (nextSpec.molecularAlterationType !== AlterationTypeConstants.TREATMENT_RESPONSE) {
-            // if the track is a molecular profile, check whether there is an existing ruleset that applies to this track
-            let rulesetTrackId;
-            if (nextSpec.molecularAlterationType !== AlterationTypeConstants.METHYLATION && trackIdForRuleSetSharing.heatmap01 !== undefined) {
-                rulesetTrackId = trackIdForRuleSetSharing.heatmap01;
-            } else if (trackIdForRuleSetSharing.heatmap !== undefined) {
-                rulesetTrackId = trackIdForRuleSetSharing.heatmap;
+            let rulesetTrackIdKey:"heatmap"|"heatmap01";
+            if (nextSpec.molecularAlterationType !== AlterationTypeConstants.METHYLATION) {
+                rulesetTrackIdKey = "heatmap01";
+            } else {
+                rulesetTrackIdKey = "heatmap";
             }
-            // if so, associate the is of the new track so that its is formatted by the existing ruleset
-            if (rulesetTrackId !== undefined) {
-                oncoprint.shareRuleSet(rulesetTrackId, newTrackId);
+            // if the track is a molecular profile, check whether there is an existing ruleset that applies to this track
+            if (trackIdForRuleSetSharing[rulesetTrackIdKey] !== undefined) {
+                // if so, associate the is of the new track so that its is formatted by the existing ruleset
+                oncoprint.shareRuleSet(trackIdForRuleSetSharing[rulesetTrackIdKey], newTrackId);
+            } else {
+                // if not, make this track available to other new tracks for ruleset sharing
+                trackIdForRuleSetSharing[rulesetTrackIdKey] = newTrackId;
             }
         } else {
             // if the track is a treatment profile, always add to trackIdForRuleSetSharing
