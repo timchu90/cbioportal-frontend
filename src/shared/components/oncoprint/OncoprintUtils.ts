@@ -48,7 +48,7 @@ import GeneMolecularDataCache from "shared/cache/GeneMolecularDataCache";
 import { AlterationTypes } from "pages/patientView/copyNumberAlterations/column/CnaColumnFormatter";
 import { isNumber } from "util";
 import { ISelectOption } from "./controls/OncoprintControls";
-import {TreatmentMolecularDataEnhanced} from "shared/cache/TreatmentMolecularDataCache.ts"
+import {TreatmentMolecularDataEnhanced} from "shared/cache/TreatmentMolecularDataCache.ts";
 
 interface IGenesetExpansionMap {
         [genesetTrackKey: string]: IHeatmapTrackSpec[];
@@ -223,10 +223,10 @@ function getTreatmentTrackRuleSetParams(trackSpec: IHeatmapTrackSpec):RuleSetPar
     // only include the pivotValue in the legend when covered by the current value_range
     if (pivotThreshold <= leftBoundaryValue) {
         // when data points do not bracket the pivotThreshold, make an artificial left boundary                                      
-        value_stop_points = [pivotThreshold-(rightBoundaryValue-pivotThreshold), pivotThreshold, rightBoundaryValue]
+        value_stop_points = [pivotThreshold-(rightBoundaryValue-pivotThreshold), pivotThreshold, rightBoundaryValue];
     } else if (pivotThreshold >= rightBoundaryValue) {
         // when data points do not bracket the pivotThreshold, make an artificial right boundary                                      
-        value_stop_points = [leftBoundaryValue, pivotThreshold, pivotThreshold+(pivotThreshold-leftBoundaryValue)]
+        value_stop_points = [leftBoundaryValue, pivotThreshold, pivotThreshold+(pivotThreshold-leftBoundaryValue)];
     } else {
         value_stop_points = [leftBoundaryValue, pivotThreshold, rightBoundaryValue];
     }
@@ -245,7 +245,7 @@ function getTreatmentTrackRuleSetParams(trackSpec: IHeatmapTrackSpec):RuleSetPar
         category_to_color![d] = categoryColorOptions[counter++];
         if (counter == categoryColorOptions.length) {
             counter = 0;
-        };
+        }
     });
 
     return {
@@ -770,9 +770,9 @@ function makeTreatmentProfileHeatmapTracksMobxPromise(oncoprint:ResultsViewOncop
 
                 const molecularProfileId = query.molecularProfileId;
                 const profile = molecularProfileIdToMolecularProfile[molecularProfileId];
+                const dataCache = oncoprint.props.store.treatmentMolecularDataCache.result!;
 
                 const treatmentId = query.treatmentId;
-                const data:TreatmentMolecularDataEnhanced[] = oncoprint.props.store.treatmentMolecularDataCache.result!.get(query)!.data!;
                 const pivotThreshold = profile.pivotThreshold;
                 const sortOrder = profile.sortOrder;
 
@@ -787,7 +787,7 @@ function makeTreatmentProfileHeatmapTracksMobxPromise(oncoprint:ResultsViewOncop
                         'treatment_id',
                         treatmentId,
                         sampleMode ? samples : patients,
-                        data,
+                        dataCache.get(query)!.data!.map(d => ({...d, value: parseFloat(d.value)})),
                         sortOrder
                     ),
                     pivotThreshold: pivotThreshold,
@@ -971,7 +971,7 @@ export function extractTreatmentSelections(text:string, selectedTreatments:ISele
     if (detectedTreatments.length > 0) {
         _.each(detectedTreatments, (d:string) => {
             text = text.replace(d, "");
-        })
+        });
     }
 
     // return the input string

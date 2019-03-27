@@ -333,7 +333,7 @@ export function makeHeatmapTrackData<T extends IBaseHeatmapTrackDatum, K extends
     featureKey: K,
     featureId: T[K],
     cases:Sample[]|Patient[],
-    data: {value: number, uniquePatientKey: string, uniqueSampleKey: string, thresholdType?: string}[],
+    data: {value: number, uniquePatientKey: string, uniqueSampleKey: string, thresholdType?: ">"|"<"}[],
     sortOrder?: string
 ): T[] {
     if (!cases.length) {
