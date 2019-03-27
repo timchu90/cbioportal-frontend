@@ -308,17 +308,23 @@ export function fillHeatmapTrackDatum<T extends IBaseHeatmapTrackDatum, K extend
 
             switch (sortOrder) {
                 case "ASC":
-                    representingDatum = _.minBy(data, 'value');
+                    representingDatum = _.minBy(data, (d)=>d.value);
                     break;
                 case "DESC":
-                    representingDatum = _.maxBy(data, 'value');
+                    representingDatum = _.maxBy(data, (d)=>d.value);
                     break;
                 default:
                     representingDatum = _.maxBy(data, (d:{value: number, thresholdType?: ">"|"<" }) => Math.abs(d.value) );
                     break;
             }
 
-            trackDatum.profile_data = representingDatum!.value || 0;
+            // `data` can contain datapoints with only NaN values
+            // in that case select the first element as representing datum
+            if (representingDatum === undefined) {
+                representingDatum = data[0];
+            }
+
+            trackDatum.profile_data = representingDatum!.value;
             if (representingDatum!.thresholdType) {
                 trackDatum.thresholdType = representingDatum!.thresholdType;
                 trackDatum.category = trackDatum.thresholdType? `${trackDatum.thresholdType}${trackDatum.profile_data.toFixed(2)}` : undefined;
