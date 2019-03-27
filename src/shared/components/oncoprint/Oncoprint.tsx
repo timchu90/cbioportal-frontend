@@ -125,7 +125,6 @@ export interface IHeatmapTrackSpec extends IBaseHeatmapTrackSpec {
     sortOrder?: string;
     maxProfileValue?: number;
     minProfileValue?: number;
-    category?:string;
 }
 export interface IGenesetHeatmapTrackSpec extends IBaseHeatmapTrackSpec {
     data: IGenesetHeatmapTrackDatum[];
