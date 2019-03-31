@@ -303,16 +303,16 @@ function transitionHiddenIds(
 
 function transitionShowClinicalTrackLegends(
     nextProps:IOncoprintProps,
-    prevProps:Partial<IOncoprintProps>,example
+    prevProps:Partial<IOncoprintProps>,
     oncoprint:OncoprintJS<any>,
-    getTrackSpecKeyToTrackId:()=>{[key:example
+    getTrackSpecKeyToTrackId:()=>{[key:string]:TrackId}
 ) {
-    const trackSpecKeyToTrackId = getTrexample
-    const clinicalTrackIds = nextProps.exampleKeyToTrackId[track.key]);
-    if (nextProps.showClinicalTrackLegeexampleLegends) {
-        oncoprint.showTrackLegends(clinexample
-    } else if (!nextProps.showClinicalTexamplealTrackLegends) {
-        oncoprint.hideTrackLegends(clinexample
+    const trackSpecKeyToTrackId = getTrackSpecKeyToTrackId();
+    const clinicalTrackIds = nextProps.clinicalTracks.map(track=>trackSpecKeyToTrackId[track.key]);
+    if (nextProps.showClinicalTrackLegends && !prevProps.showClinicalTrackLegends) {
+        oncoprint.showTrackLegends(clinicalTrackIds);
+    } else if (!nextProps.showClinicalTrackLegends && prevProps.showClinicalTrackLegends) {
+        oncoprint.hideTrackLegends(clinicalTrackIds);
     }
 }
 
