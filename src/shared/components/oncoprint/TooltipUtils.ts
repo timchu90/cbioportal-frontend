@@ -24,6 +24,8 @@ const customDriverTiersImg = require("../../../rootImages/driver_tiers.png");
 
 export const TOOLTIP_DIV_CLASS = "oncoprint__tooltip";
 
+const tooltipTextElementNaN = 'N/A';
+
 function sampleViewAnchorTag(study_id:string, sample_id:string) {
     return `<a href="${getSampleViewUrl(study_id, sample_id)}" target="_blank">${sample_id}</a>`;
 }
@@ -126,7 +128,7 @@ export function makeHeatmapTrackTooltip(genetic_alteration_type:MolecularProfile
     return function (dataUnderMouse:any[]) {
         
         let data_header = '';
-        let valueTextElement = 'N/A';
+        let valueTextElement = tooltipTextElementNaN;
         let categoryTextElement = '';
 
         switch(genetic_alteration_type) {
@@ -180,10 +182,10 @@ export function makeHeatmapTrackTooltip(genetic_alteration_type:MolecularProfile
         }
 
         let ret = data_header;
-        if (valueTextElement !== 'N/A' || categoryCount === 0) {
+        if (valueTextElement !== tooltipTextElementNaN || categoryCount === 0) {
             ret += '<b>' + valueTextElement + '</b>';
         }
-        if (valueTextElement !== 'N/A' && categoryCount > 0) {
+        if (valueTextElement !== tooltipTextElementNaN && categoryCount > 0) {
             ret += ' and ';
         }
         if (categoryCount > 0) {
