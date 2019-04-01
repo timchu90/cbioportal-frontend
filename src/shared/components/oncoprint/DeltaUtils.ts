@@ -869,7 +869,7 @@ function transitionGenesetHeatmapTrack(
     }
 }
 
-function transitionHeatmapTrack(
+export function transitionHeatmapTrack(
     nextSpec:IHeatmapTrackSpec|undefined,
     prevSpec:IHeatmapTrackSpec|undefined,
     getTrackSpecKeyToTrackId:()=>{[key:string]:TrackId},
@@ -920,7 +920,7 @@ function transitionHeatmapTrack(
 
         if (nextSpec.molecularAlterationType !== AlterationTypeConstants.TREATMENT_RESPONSE) {
             let rulesetTrackIdKey:"heatmap"|"heatmap01";
-            if (nextSpec.molecularAlterationType !== AlterationTypeConstants.METHYLATION) {
+            if (nextSpec.molecularAlterationType === AlterationTypeConstants.METHYLATION) {
                 rulesetTrackIdKey = "heatmap01";
             } else {
                 rulesetTrackIdKey = "heatmap";

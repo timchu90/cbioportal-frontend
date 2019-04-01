@@ -80,7 +80,8 @@ module.exports = function (config) {
         customLaunchers: {
             Chrome_with_debugging: {
                 base: 'Chrome',
-                chromeDataDir: path.resolve(__dirname, '.chrome')
+                chromeDataDir: path.resolve(__dirname, '.chrome'),
+                flags: [ '--remote-debugging-port=9333' ]
             }
         },
 
@@ -103,7 +104,7 @@ module.exports = function (config) {
         port: 9876,
         colors: true,
         logLevel: config.LOG_DISABLE,
-        browsers: ['Chrome'],
+        browsers: ['Chrome_with_debugging'],
         //browsers: ['PhantomJS'],
         singleRun: !argv.watch,
     });

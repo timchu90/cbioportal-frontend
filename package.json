@@ -28,6 +28,7 @@
     "serveDist": "./scripts/serve_dist.sh",
     "testTime": "start_time=`date +%s` && karma start karma.conf.js && echo run time is $(expr `date +%s` - $start_time) s",
     "test": "karma start karma.conf.js",
+    "test:debug": "karma start karma.conf.js --browsers=Chrome_with_debugging --debug --single-run=false",
     "test:watch": "yarn run test -- --watch",
     "lint": "tslint 'src/**/*.ts' 'src/**/*.tsx' --exclude 'src/shared/api/generated/**'",
     "lint-fix": "tslint --fix 'src/**/*.ts' 'src/**/*.tsx' --exclude 'src/shared/api/generated/**'",
