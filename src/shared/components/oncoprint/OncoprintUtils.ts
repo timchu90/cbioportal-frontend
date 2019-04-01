@@ -777,7 +777,7 @@ function makeTreatmentProfileHeatmapTracksMobxPromise(oncoprint:ResultsViewOncop
                 const sortOrder = profile.sortOrder;
 
                 return {
-                    key: `HEATMAPTRACK_${molecularProfileId},${treatmentId}`,
+                    key: `TREATMENTHEATMAPTRACK_${molecularProfileId},${treatmentId}`,
                     label: query.treatmentName,
                     molecularProfileId: query.molecularProfileId,
                     molecularProfileName: molecularProfileIdToMolecularProfile[molecularProfileId].name,
