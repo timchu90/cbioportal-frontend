@@ -1089,7 +1089,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps,{}> {
                             /> Apply Log Scale
                         </label></div>
                     )}
-                    {(axisSelection.dataType !== GENESET_DATA_TYPE) && (<div className="form-group" style={{opacity:(axisSelection.dataType === CLIN_ATTR_DATA_TYPE ? 0 : 1)}}>
+                    {(axisSelection.dataType !== GENESET_DATA_TYPE) && (<div className="form-group" style={{display:(axisSelection.dataType === CLIN_ATTR_DATA_TYPE ? 'none' : 'block')}}>
                         <label>Gene</label>
                         <div style={{display:"flex"}}>
                             <ReactSelect
