@@ -2598,6 +2598,39 @@ export class StudyViewPageStore {
 
         return survivalTypes;
     }
+    
+    @computed private get admixtureCharts() {
+        let admixEASFlag = false;
+        let admixSASFlag = false;
+        let admixEURFlag = false;
+        let admixAMRFlag = false;
+        let admixAFRFlag = false;
+        let admixtureTypes: AdmixtureType[] = [];
+        
+        this.clinicalAttributes.result.forEach(obj => {
+            if (obj.clinicalAttributeId === ADMIX_EAS) {
+                admixEASFlag = true;
+            } else if (obj.clinicalAttributeId === ADMIX_SAS) {
+                admixSASFlag = true;
+            } else if (obj.clinicalAttributeId === ADMIX_EUR) {
+                admixEURFlag = true;
+            } else if (obj.clinicalAttributeId === ADMIX_AMR) {
+                admixAMRFlag = true;
+            } else if (obj.clinicalAttributeId === ADMIX_AFR) {
+                admixAFRFlag = true;
+            }
+        });
+        
+        if (admixEASFlag && admixSASFlag && admixEURFlag && admixAMRFlag && admixAFRFlag) {
+            admixtureTypes.push({
+                id: UniqueKey.ADMIXTURE_DATA,
+                title: 'Admixture',
+                associatedAttrs: [ADMIX_EAS, ADMIX_SAS, ADMIX_EUR, ADMIX_AMR, ADMIX_AFR]
+            });
+        }
+        
+        return admixtureTypes
+    }
 
     public async getClinicalData(chartMeta: ChartMeta) {
         if (chartMeta.clinicalAttribute && this.samples.result) {
@@ -2773,7 +2806,7 @@ export class StudyViewPageStore {
     readonly admixtureData = remoteData<{ [id: string]: ClinicalData[] }>({
         await: () => [this.clinicalAttributes, this.samples],
         invoke: async () => {
-            const attributeIds = _.flatten(this.survivalPlots.map(obj => obj.associatedAttrs))
+            const attributeIds = _.flatten(this.admixtureCharts.map(obj => obj.associatedAttrs))
             if(!_.isEmpty(attributeIds)){
                 const filter: ClinicalDataMultiStudyFilter = {
                     attributeIds: attributeIds,

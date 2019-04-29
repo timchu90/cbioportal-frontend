@@ -389,8 +389,9 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                 );
             }
             case ChartTypeEnum.ADMIX_BAR_CHART: {
+                console.log(this.props)
                 return ()=>(
-                    <div>ADMIX CHART HERE</div>
+                    <div>ADMIX CHART HERE</div> 
                 );
             }
             default:

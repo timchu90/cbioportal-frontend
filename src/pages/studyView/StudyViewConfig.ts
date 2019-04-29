@@ -200,7 +200,7 @@ const studyViewFrontEnd = {
                 h: 2
             },
             [ChartTypeEnum.ADMIX_BAR_CHART]: {
-                w: 3,
+                w: 4,
                 h: 2
             },
             [ChartTypeEnum.NONE]: {
