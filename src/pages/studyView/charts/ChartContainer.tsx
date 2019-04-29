@@ -388,6 +388,11 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                     </div>
                 );
             }
+            case ChartTypeEnum.ADMIX_BAR_CHART: {
+                return ()=>(
+                    <div>ADMIX CHART HERE</div>
+                );
+            }
             default:
                 return null;
         }
@@ -436,6 +441,7 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
     }
 
     public render() {
+        console.log(this.props)
         return (
             <div className={classnames(styles.chart, { [styles.highlight]: this.highlightChart})}
                  data-test={`chart-container-${this.props.chartMeta.uniqueKey}`}

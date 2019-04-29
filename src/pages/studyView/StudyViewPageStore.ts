@@ -100,7 +100,7 @@ export enum ClinicalDataTypeEnum {
 export type ClinicalDataType = 'SAMPLE' | 'PATIENT';
 
 
-export type ChartType = 'PIE_CHART' | 'BAR_CHART' | 'SURVIVAL' | 'TABLE' | 'SCATTER' | 'MUTATED_GENES_TABLE' | 'CNA_GENES_TABLE' | 'NONE';
+export type ChartType = 'PIE_CHART' | 'BAR_CHART' | 'SURVIVAL' | 'TABLE' | 'SCATTER' | 'MUTATED_GENES_TABLE' | 'CNA_GENES_TABLE' | 'ADMIX_BAR_CHART' |'NONE';
 
 export enum UniqueKey {
     MUTATED_GENES_TABLE = 'MUTATED_GENES_TABLE',
@@ -113,7 +113,8 @@ export enum UniqueKey {
     MUTATION_COUNT = "SAMPLE_MUTATION_COUNT",
     FRACTION_GENOME_ALTERED = "SAMPLE_FRACTION_GENOME_ALTERED",
     WITH_MUTATION_DATA = "WITH_MUTATION_DATA",
-    WITH_CNA_DATA = "WITH_CNA_DATA"
+    WITH_CNA_DATA = "WITH_CNA_DATA",
+    ADMIXTURE_DATA = "ADMIXTURE_DATA"
 }
 
 export enum StudyViewPageTabKeyEnum {
@@ -142,6 +143,11 @@ export const OS_STATUS = "OS_STATUS";
 export const OS_MONTHS = "OS_MONTHS";
 export const DFS_STATUS = "DFS_STATUS";
 export const DFS_MONTHS = "DFS_MONTHS";
+export const ADMIX_EAS = "ADMIX_EAS";
+export const ADMIX_SAS = "ADMIX_SAS";
+export const ADMIX_EUR = "ADMIX_EUR";
+export const ADMIX_AMR = "ADMIX_AMR";
+export const ADMIX_AFR = "ADMIX_AFR";
 
 export const SELECTED_ANALYSIS_GROUP_VALUE = "Selected";
 export const UNSELECTED_ANALYSIS_GROUP_VALUE = "Unselected";
@@ -157,6 +163,11 @@ export type SurvivalType = {
     filter: string[],
     alteredGroup: PatientSurvival[]
     unalteredGroup: PatientSurvival[]
+}
+export type AdmixtureType = {
+    id: string,
+    title: string,
+    associatedAttrs: ['ADMIX_EAS', 'ADMIX_SAS', 'ADMIX_EUR','ADMIX_AMR','ADMIX_AFR']
 }
 
 export enum ChartMetaDataTypeEnum {
@@ -552,6 +563,7 @@ export class StudyViewPageStore {
     public clinicalDataBinPromises: { [id: string]: MobxPromise<DataBin[]> } = {};
     public clinicalDataCountPromises: { [id: string]: MobxPromise<ClinicalDataCountWithColor[]> } = {};
     public customChartsPromises: { [id: string]: MobxPromise<ClinicalDataCountWithColor[]> } = {};
+    public admixDataPromises: {[id: string]: MobxPromise<ClinicalDataCountWithColor[]>} = {};
 
     @observable.ref private _analysisGroupsClinicalAttribute:ClinicalAttribute|undefined;
     @observable.ref private _analysisGroups:ReadonlyArray<AnalysisGroup>|undefined;
@@ -1989,6 +2001,19 @@ export class StudyViewPageStore {
             };
             return acc;
         }, _chartMetaSet);
+        
+        _chartMetaSet[UniqueKey.ADMIXTURE_DATA] = {
+            uniqueKey: UniqueKey.ADMIXTURE_DATA,
+            dataType: getChartMetaDataType(UniqueKey.ADMIXTURE_DATA),
+            patientAttribute:false,
+            chartType: this.chartsType.get(UniqueKey.ADMIXTURE_DATA)!,
+            dimension: this.chartsDimension[UniqueKey.ADMIXTURE_DATA]!,
+            displayName: 'Admixture',
+            priority: getDefaultPriorityByUniqueKey(UniqueKey.ADMIXTURE_DATA),
+            renderWhenDataChange: true,
+            description: ''
+        };
+
 
         if (!_.isEmpty(this.mutationProfiles.result!)) {
             _chartMetaSet[UniqueKey.MUTATED_GENES_TABLE] = {
@@ -2112,7 +2137,13 @@ export class StudyViewPageStore {
         let dfsStatusFlag = false;
         let dfsMonthsFlag = false;
         let mutationCountFlag = false;
-        let fractionGenomeAlteredFlag = false;
+        let fractionGenomeAlteredFlag = false;    
+        let admixEASFlag = false;
+        let admixSASFlag = false;
+        let admixEURFlag = false;
+        let admixAMRFlag = false;
+        let admixAFRFlag = false;
+
 
         this.clinicalAttributes.result.forEach((obj: ClinicalAttribute) => {
             const uniqueKey = getClinicalAttributeUniqueKey(obj);
@@ -2129,6 +2160,16 @@ export class StudyViewPageStore {
                     mutationCountFlag = true;
                 } else if (FRACTION_GENOME_ALTERED === obj.clinicalAttributeId) {
                     fractionGenomeAlteredFlag = true;
+                } else if (obj.clinicalAttributeId === ADMIX_EAS) {
+                    admixEASFlag = true;
+                } else if (obj.clinicalAttributeId === ADMIX_SAS) {
+                    admixSASFlag = true;
+                } else if (obj.clinicalAttributeId === ADMIX_EUR) {
+                    admixEURFlag = true;
+                } else if (obj.clinicalAttributeId === ADMIX_AMR) {
+                    admixAMRFlag = true;
+                } else if (obj.clinicalAttributeId === ADMIX_AFR) {
+                    admixAFRFlag = true;
                 }
             }
 
@@ -2142,7 +2183,13 @@ export class StudyViewPageStore {
         });
 
         const cancerTypeIds = _.uniq(this.queriedPhysicalStudies.result.map(study => study.cancerTypeId));
-
+        
+        this.chartsType.set(UniqueKey.ADMIXTURE_DATA, ChartTypeEnum.ADMIX_BAR_CHART);
+        this.chartsDimension[UniqueKey.ADMIXTURE_DATA] = STUDY_VIEW_CONFIG.layout.dimensions[ChartTypeEnum.ADMIX_BAR_CHART];
+        if (admixEASFlag && admixSASFlag && admixEURFlag && admixAMRFlag && admixAFRFlag) {
+            console.log('ALL ADMIX DATA AVAILABLE. ADMIXTURE CHART SET TO VISIBLE.')
+            this.changeChartVisibility(UniqueKey.ADMIXTURE_DATA, true);
+        }
         this.chartsType.set(UniqueKey.OVERALL_SURVIVAL, ChartTypeEnum.SURVIVAL);
         this.chartsDimension[UniqueKey.OVERALL_SURVIVAL] = STUDY_VIEW_CONFIG.layout.dimensions[ChartTypeEnum.SURVIVAL];
         if (osStatusFlag && osMonthsFlag && getDefaultPriorityByUniqueKey(UniqueKey.OVERALL_SURVIVAL) !== 0) {
@@ -2723,6 +2770,34 @@ export class StudyViewPageStore {
             return '';
     }
 
+    readonly admixtureData = remoteData<{ [id: string]: ClinicalData[] }>({
+        await: () => [this.clinicalAttributes, this.samples],
+        invoke: async () => {
+            const attributeIds = _.flatten(this.survivalPlots.map(obj => obj.associatedAttrs))
+            if(!_.isEmpty(attributeIds)){
+                const filter: ClinicalDataMultiStudyFilter = {
+                    attributeIds: attributeIds,
+                    identifiers: _.map(this.samples.result!, obj => {
+                        return {
+                            "entityId": obj.patientId,
+                            "studyId": obj.studyId
+                        }
+                    })
+                };
+
+                let data = await defaultClient.fetchClinicalDataUsingPOST({
+                    clinicalDataType: ClinicalDataTypeEnum.PATIENT,
+                    clinicalDataMultiStudyFilter: filter
+                })
+
+                return _.groupBy(data, 'uniquePatientKey')
+            }
+            return {}
+        },
+        onError: (error => {}),
+        default: {}
+    });
+    
     readonly survivalPlotData = remoteData<SurvivalType[]>({
         await: () => [this.survivalData, this.selectedPatientKeys, this.unSelectedPatientKeys],
         invoke: async () => {

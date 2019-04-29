@@ -81,6 +81,7 @@ export enum ChartTypeEnum {
     SCATTER = 'SCATTER',
     MUTATED_GENES_TABLE = 'MUTATED_GENES_TABLE',
     CNA_GENES_TABLE = 'CNA_GENES_TABLE',
+    ADMIX_BAR_CHART = 'ADMIX_BAR_CHART',
     NONE = 'NONE'
 }
 
@@ -92,6 +93,7 @@ export enum ChartTypeNameEnum {
     SCATTER = 'density plot',
     MUTATED_GENES_TABLE = 'table',
     CNA_GENES_TABLE = 'table',
+    ADMIX_BAR_CHART = 'admix bar chart',
     NONE = 'none'
 }
 
@@ -115,6 +117,7 @@ const studyViewFrontEnd = {
         "PATIENT_CANCER_TYPE": 3000,
         "SAMPLE_CANCER_TYPE_DETAILED": 2000,
         "PATIENT_CANCER_TYPE_DETAILED": 2000,
+        "ADMIXTURE_DATA": 500,
         "OS_SURVIVAL": 400,
         "DFS_SURVIVAL": 300,
         "MUTATION_COUNT_CNA_FRACTION": 200,
@@ -194,6 +197,10 @@ const studyViewFrontEnd = {
             },
             [ChartTypeEnum.CNA_GENES_TABLE]: {
                 w: 2,
+                h: 2
+            },
+            [ChartTypeEnum.ADMIX_BAR_CHART]: {
+                w: 3,
                 h: 2
             },
             [ChartTypeEnum.NONE]: {

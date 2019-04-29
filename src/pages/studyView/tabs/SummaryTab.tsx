@@ -286,6 +286,12 @@ export class StudySummaryTab extends React.Component<IStudySummaryTabProps, {}> 
 
                 break;
             }
+            case ChartTypeEnum.ADMIX_BAR_CHART: {
+                console.log('ADMIX BAR CHART')
+                console.log(props)
+                props.promise = this.store.admixtureData;
+                break;
+            }
             default:
                 break;
         }
