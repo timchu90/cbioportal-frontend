@@ -2809,11 +2809,10 @@ export class StudyViewPageStore {
     readonly admixtureChartData = remoteData({
         await: () => [this.admixtureData, this.selectedPatientKeys],
         invoke: async () => {
-            //ADD IN PATIENT FILTER?
             let output = <PatientAdmixture[]> []
-            for (let patient in this.admixtureData.result)
+            for (let patient in this.selectedPatientKeys.result)
             {
-                let admix = _.keyBy(this.admixtureData.result[patient], 'clinicalAttributeId')
+                let admix = _.keyBy(this.admixtureData.result[this.selectedPatientKeys.result[patient]], 'clinicalAttributeId')
                 output.push({
                     uniquePatientKey: admix['ADMIX_AFR'].uniquePatientKey,
                     patientId: admix['ADMIX_AFR'].patientId,
