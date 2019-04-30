@@ -43,6 +43,7 @@ import {
 } from 'shared/api/generated/CBioPortalAPI';
 import {fetchCopyNumberSegmentsForSamples} from "shared/lib/StoreUtils";
 import {PatientSurvival} from 'shared/model/PatientSurvival';
+import {PatientAdmixture} from 'shared/model/PatientAdmixture';
 import {getPatientSurvivals} from 'pages/resultsView/SurvivalStoreHelper';
 import {
     calculateLayout,
@@ -161,13 +162,14 @@ export type SurvivalType = {
     title: string,
     associatedAttrs: ['OS_STATUS', 'OS_MONTHS'] | ['DFS_STATUS', 'DFS_MONTHS'],
     filter: string[],
-    alteredGroup: PatientSurvival[]
+    alteredGroup: PatientSurvival[],
     unalteredGroup: PatientSurvival[]
 }
 export type AdmixtureType = {
     id: string,
     title: string,
-    associatedAttrs: ['ADMIX_EAS', 'ADMIX_SAS', 'ADMIX_EUR','ADMIX_AMR','ADMIX_AFR']
+    associatedAttrs: ['ADMIX_EAS', 'ADMIX_SAS', 'ADMIX_EUR','ADMIX_AMR','ADMIX_AFR'],
+    admixture: PatientAdmixture[]
 }
 
 export enum ChartMetaDataTypeEnum {
@@ -2625,7 +2627,8 @@ export class StudyViewPageStore {
             admixtureTypes.push({
                 id: UniqueKey.ADMIXTURE_DATA,
                 title: 'Admixture',
-                associatedAttrs: [ADMIX_EAS, ADMIX_SAS, ADMIX_EUR, ADMIX_AMR, ADMIX_AFR]
+                associatedAttrs: [ADMIX_EAS, ADMIX_SAS, ADMIX_EUR, ADMIX_AMR, ADMIX_AFR],
+                admixture: []
             });
         }
         
@@ -2802,7 +2805,32 @@ export class StudyViewPageStore {
         } else
             return '';
     }
-
+    
+    readonly admixtureChartData = remoteData({
+        await: () => [this.admixtureData, this.selectedPatientKeys],
+        invoke: async () => {
+            //ADD IN PATIENT FILTER?
+            let output = <PatientAdmixture[]> []
+            for (let patient in this.admixtureData.result)
+            {
+                let admix = _.keyBy(this.admixtureData.result[patient], 'clinicalAttributeId')
+                output.push({
+                    uniquePatientKey: admix['ADMIX_AFR'].uniquePatientKey,
+                    patientId: admix['ADMIX_AFR'].patientId,
+                    studyId: admix['ADMIX_AFR'].studyId,
+                    ADMIX_AFR: admix['ADMIX_AFR'].value,
+                    ADMIX_AMR: admix['ADMIX_AMR'].value,
+                    ADMIX_EAS: admix['ADMIX_EAS'].value,
+                    ADMIX_EUR: admix['ADMIX_EUR'].value,
+                    ADMIX_SAS: admix['ADMIX_SAS'].value
+                })
+            }
+            return output
+        },
+        onError: (error => {}),
+        default: []
+    });
+    
     readonly admixtureData = remoteData<{ [id: string]: ClinicalData[] }>({
         await: () => [this.clinicalAttributes, this.samples],
         invoke: async () => {
@@ -2822,8 +2850,7 @@ export class StudyViewPageStore {
                     clinicalDataType: ClinicalDataTypeEnum.PATIENT,
                     clinicalDataMultiStudyFilter: filter
                 })
-
-                return _.groupBy(data, 'uniquePatientKey')
+                return _.groupBy(data, 'uniquePatientKey') 
             }
             return {}
         },

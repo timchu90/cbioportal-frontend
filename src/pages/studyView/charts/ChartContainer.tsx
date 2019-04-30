@@ -442,7 +442,6 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
     }
 
     public render() {
-        console.log(this.props)
         return (
             <div className={classnames(styles.chart, { [styles.highlight]: this.highlightChart})}
                  data-test={`chart-container-${this.props.chartMeta.uniqueKey}`}
