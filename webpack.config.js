@@ -152,7 +152,8 @@ var config = {
                     {
                         loader: "babel-loader",
                         options: {
-                            "presets": ["@babel/preset-env", "@babel/preset-react"]
+                            "presets": ["@babel/preset-env", "@babel/preset-react"],
+                            "cacheDirectory": "/opt/build/cache/" //"/Users/aaronlisman/WebstormProjects/cbioportal-frontend/babelCache"
                         },
                     },
                     {

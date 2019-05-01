@@ -39,7 +39,7 @@ const config = {
         library: "[name]_lib"
     },
 
-    devtool: "source-map",
+    devtool: "",
 
     plugins: []
 };
