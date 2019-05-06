@@ -19,6 +19,7 @@ import MobxPromise from "mobxpromise";
 import SurvivalChart, {LegendLocation} from "../../resultsView/survival/SurvivalChart";
 import {MutatedGenesTable} from "../table/MutatedGenesTable";
 import {CNAGenesTable} from "../table/CNAGenesTable";
+import AdmixBarPlot from "./admixture/AdmixBarPlot";
 
 import autobind from 'autobind-decorator';
 import BarChart from "./barChart/BarChart";
@@ -391,7 +392,12 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
             case ChartTypeEnum.ADMIX_BAR_CHART: {
                 console.log(this.props)
                 return ()=>(
-                    <div>ADMIX CHART HERE</div> 
+                    <AdmixBarPlot
+                        promise={this.props.promise}
+                        width={getWidthByDimension(this.props.chartMeta.dimension, this.borderWidth)}
+                        height={getTableHeightByDimension(this.props.chartMeta.dimension, this.chartHeaderHeight)}
+                        filters={this.props.filters}
+                    />
                 );
             }
             default:
