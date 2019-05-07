@@ -141,14 +141,14 @@ export default class AdmixBarPlot extends React.Component<IAdmixBarPlotProps, {}
             .data(data).enter()
             .append('g')
             .attr('transform',function(d: any,i: number){
-                return 'translate(' + x(1000/data.length * i)  + ',' + y(0.05) + ')'
+                return 'translate(' + x(1000/data!.length * i)  + ',' + y(0.05) + ')'
             })
         
         for (var i in populations){
             bar.append('rect')
                 .attr('class', populations[i])
                 .attr('width', function(){
-                    return x(1000)/data.length - 12
+                    return x(1000)/data!.length - 12
                 })
                 .attr('height', function(d: any) { return y(d[populations[i]])})
                 .attr('fill', colorScale(populations[i]))
