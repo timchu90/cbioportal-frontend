@@ -11,9 +11,9 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>com.github.eirslett.frontend-maven-plugin</groupId>
+                <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
-                <version>frontend-plugins-1.6</version>
+                <version>1.6</version>
 
                 <executions>
 
