@@ -390,7 +390,6 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                 );
             }
             case ChartTypeEnum.ADMIX_BAR_CHART: {
-                console.log(this.props)
                 return ()=>(
                     <AdmixBarPlot
                         promise={this.props.promise}

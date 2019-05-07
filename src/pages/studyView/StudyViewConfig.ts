@@ -113,11 +113,11 @@ const studyViewFrontEnd = {
         'SAMPLE_MSI_SCORE': [1, 2, 5, 10, 30]
     },
     priority: {
+        "ADMIXTURE_DATA": 4000,
         "SAMPLE_CANCER_TYPE": 3000,
         "PATIENT_CANCER_TYPE": 3000,
         "SAMPLE_CANCER_TYPE_DETAILED": 2000,
         "PATIENT_CANCER_TYPE_DETAILED": 2000,
-        "ADMIXTURE_DATA": 500,
         "OS_SURVIVAL": 400,
         "DFS_SURVIVAL": 300,
         "MUTATION_COUNT_CNA_FRACTION": 200,
@@ -148,7 +148,12 @@ const studyViewFrontEnd = {
         "PATIENT_SUBTYPE": 8,
         "SAMPLE_SUBTYPE": 8,
         "PATIENT_TUMOR_SITE": 8,
-        "SAMPLE_TUMOR_SITE": 8
+        "SAMPLE_TUMOR_SITE": 8,
+        "PATIENT_ADMIX_AFR": 0,
+        "PATIENT_ADMIX_AMR": 0,
+        "PATIENT_ADMIX_EAS": 0,
+        "PATIENT_ADMIX_EUR": 0,
+        "PATIENT_ADMIX_SAS": 0,
     },
     thresholds: {
         pieToTable: 20,

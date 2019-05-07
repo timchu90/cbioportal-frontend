@@ -101,6 +101,7 @@ const ServerConfigDefaults: Partial<IServerConfig> = {
     study_view: {
         tableAttrs: ['SAMPLE_CANCER_TYPE', 'SAMPLE_CANCER_TYPE_DETAILED'],
         priority: {
+            "ADMIXTURE_DATA": 4000,
             "SAMPLE_CANCER_TYPE": 3000,
             "PATIENT_CANCER_TYPE": 3000,
             "SAMPLE_CANCER_TYPE_DETAILED": 2000,

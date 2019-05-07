@@ -2189,13 +2189,13 @@ export class StudyViewPageStore {
         this.chartsType.set(UniqueKey.ADMIXTURE_DATA, ChartTypeEnum.ADMIX_BAR_CHART);
         this.chartsDimension[UniqueKey.ADMIXTURE_DATA] = STUDY_VIEW_CONFIG.layout.dimensions[ChartTypeEnum.ADMIX_BAR_CHART];
         if (admixEASFlag && admixSASFlag && admixEURFlag && admixAMRFlag && admixAFRFlag) {
-            console.log('ALL ADMIX DATA AVAILABLE. ADMIXTURE CHART SET TO VISIBLE.')
             this.changeChartVisibility(UniqueKey.ADMIXTURE_DATA, true);
+            this.changeChartVisibility('PATIENT_SEX', false);
         }
         this.chartsType.set(UniqueKey.OVERALL_SURVIVAL, ChartTypeEnum.SURVIVAL);
         this.chartsDimension[UniqueKey.OVERALL_SURVIVAL] = STUDY_VIEW_CONFIG.layout.dimensions[ChartTypeEnum.SURVIVAL];
         if (osStatusFlag && osMonthsFlag && getDefaultPriorityByUniqueKey(UniqueKey.OVERALL_SURVIVAL) !== 0) {
-            // hide OVERALL_SURVIVAL chart if cacner type is mixed or have moer than one cancer type
+            // hide OVERALL_SURVIVAL chart if cancer type is mixed or have more than one cancer type
             if (cancerTypeIds.length === 1 && cancerTypeIds[0] !== 'mixed') {
                 this.changeChartVisibility(UniqueKey.OVERALL_SURVIVAL, true);
             }
