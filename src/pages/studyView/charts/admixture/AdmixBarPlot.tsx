@@ -40,8 +40,8 @@ export default class AdmixBarPlot extends React.Component<IAdmixBarPlotProps, {}
         var margin = 20
         var width = this.props.width;
         var height = this.props.height;
-
-        var x = d3.scale.linear().range([70,width-50]).domain([0,1000])
+        var xshift = 70
+        var x = d3.scale.linear().range([xshift,width-50]).domain([0,1000])
         var y = d3.scale.linear().range([0,height]).domain([0,1.2])
         var scale = d3.scale.linear().range([0,height]).domain([0,1000])
 
@@ -148,7 +148,13 @@ export default class AdmixBarPlot extends React.Component<IAdmixBarPlotProps, {}
             bar.append('rect')
                 .attr('class', populations[i])
                 .attr('width', function(){
-                    return x(1000)/data!.length - 12
+                    var width = x(1000/data!.length)-xshift-0.5
+                    if (width > 75) {
+                        return 75
+                    }
+                    else {
+                        return width
+                    }
                 })
                 .attr('height', function(d: any) { return y(d[populations[i]])})
                 .attr('fill', colorScale(populations[i]))
@@ -174,7 +180,7 @@ export default class AdmixBarPlot extends React.Component<IAdmixBarPlotProps, {}
                     .style("top", function(){
                         return (currentEvent.clientY + 10) + "px"
                     })
-                    .style("opacity", .9)
+                    .style("opacity", 1)
                 })
                 .on('mouseout',function(d: any){
                     div.style('opacity',0)
