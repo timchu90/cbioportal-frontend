@@ -148,12 +148,7 @@ const studyViewFrontEnd = {
         "PATIENT_SUBTYPE": 8,
         "SAMPLE_SUBTYPE": 8,
         "PATIENT_TUMOR_SITE": 8,
-        "SAMPLE_TUMOR_SITE": 8,
-        "PATIENT_ADMIX_AFR": 0,
-        "PATIENT_ADMIX_AMR": 0,
-        "PATIENT_ADMIX_EAS": 0,
-        "PATIENT_ADMIX_EUR": 0,
-        "PATIENT_ADMIX_SAS": 0,
+        "SAMPLE_TUMOR_SITE": 8
     },
     thresholds: {
         pieToTable: 20,

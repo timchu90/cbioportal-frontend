@@ -2190,7 +2190,6 @@ export class StudyViewPageStore {
         this.chartsDimension[UniqueKey.ADMIXTURE_DATA] = STUDY_VIEW_CONFIG.layout.dimensions[ChartTypeEnum.ADMIX_BAR_CHART];
         if (admixEASFlag && admixSASFlag && admixEURFlag && admixAMRFlag && admixAFRFlag) {
             this.changeChartVisibility(UniqueKey.ADMIXTURE_DATA, true);
-            this.changeChartVisibility('PATIENT_SEX', false);
         }
         this.chartsType.set(UniqueKey.OVERALL_SURVIVAL, ChartTypeEnum.SURVIVAL);
         this.chartsDimension[UniqueKey.OVERALL_SURVIVAL] = STUDY_VIEW_CONFIG.layout.dimensions[ChartTypeEnum.SURVIVAL];
@@ -2811,18 +2810,25 @@ export class StudyViewPageStore {
         invoke: async () => {
             let output = <PatientAdmixture[]> []
             for (let patient in this.selectedPatientKeys.result)
-            {
+            {   
                 let admix = _.keyBy(this.admixtureData.result[this.selectedPatientKeys.result[patient]], 'clinicalAttributeId')
-                output.push({
-                    uniquePatientKey: admix['ADMIX_AFR'].uniquePatientKey,
-                    patientId: admix['ADMIX_AFR'].patientId,
-                    studyId: admix['ADMIX_AFR'].studyId,
-                    ADMIX_AFR: admix['ADMIX_AFR'].value,
-                    ADMIX_AMR: admix['ADMIX_AMR'].value,
-                    ADMIX_EAS: admix['ADMIX_EAS'].value,
-                    ADMIX_EUR: admix['ADMIX_EUR'].value,
-                    ADMIX_SAS: admix['ADMIX_SAS'].value
-                })
+                if(!_.isEmpty(admix)){
+                    output.push({
+                        uniquePatientKey: admix['ADMIX_AFR'].uniquePatientKey,
+                        patientId: admix['ADMIX_AFR'].patientId,
+                        studyId: admix['ADMIX_AFR'].studyId,
+                        ADMIX_AFR: +admix['ADMIX_AFR'].value,
+                        ADMIX_AMR: +admix['ADMIX_AMR'].value,
+                        ADMIX_EAS: +admix['ADMIX_EAS'].value,
+                        ADMIX_EUR: +admix['ADMIX_EUR'].value,
+                        ADMIX_SAS: +admix['ADMIX_SAS'].value,
+                        sortScore: +admix['ADMIX_AFR'].value * 128 
+                             + +admix['ADMIX_AMR'].value * 64 
+                             + +admix['ADMIX_EAS'].value * 32 
+                             + +admix['ADMIX_EUR'].value * 16 
+                             + +admix['ADMIX_SAS'].value * 8
+                    })
+                }
             }
             return output
         },

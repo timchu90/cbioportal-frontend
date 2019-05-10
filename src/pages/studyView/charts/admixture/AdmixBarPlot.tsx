@@ -11,11 +11,12 @@ import autobind from 'autobind-decorator';
 import {STUDY_VIEW_CONFIG} from "../../StudyViewConfig";
 import {getTextDiagonal, getTextHeight, getTextWidth} from "../../../../shared/lib/wrapText";
 import {AdmixtureType} from "pages/studyView/StudyViewPageStore";
+import {PatientAdmixture} from 'shared/model/PatientAdmixture';
 import * as d3 from "d3"
 import {event as currentEvent} from 'd3';
 
 export interface IAdmixBarPlotProps {
-    promise: MobxPromise<AdmixtureType[]>;
+    promise: MobxPromise<PatientAdmixture[]>;
     width: number;
     height: number;
     filters: ClinicalDataIntervalFilterValue[];
@@ -134,6 +135,8 @@ export default class AdmixBarPlot extends React.Component<IAdmixBarPlotProps, {}
       //start drawing actual data
       
         var data = this.props.promise.result
+        
+        data!.sort((a, b) => (a.sortScore < b.sortScore) ? 1 : -1)
 
         var bars = svg.append('g').attr('class','bars')
         
