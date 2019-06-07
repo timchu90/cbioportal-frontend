@@ -43,6 +43,7 @@ export type ChartType =
     | 'SCATTER'
     | 'MUTATED_GENES_TABLE'
     | 'CNA_GENES_TABLE'
+    | 'ADMIX_BAR_CHART' 
     | 'NONE';
 
 export enum UniqueKey {
@@ -57,7 +58,8 @@ export enum UniqueKey {
     MUTATION_COUNT = "SAMPLE_MUTATION_COUNT",
     FRACTION_GENOME_ALTERED = "SAMPLE_FRACTION_GENOME_ALTERED",
     WITH_MUTATION_DATA = "WITH_MUTATION_DATA",
-    WITH_CNA_DATA = "WITH_CNA_DATA"
+    WITH_CNA_DATA = "WITH_CNA_DATA",
+    ADMIXTURE_DATA = "ADMIXTURE_DATA"
 }
 
 export type AnalysisGroup = { value: string, color: string, legendText?: string };

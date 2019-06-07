@@ -2153,8 +2153,6 @@ export class StudyViewPageStore {
             return acc
         }, _chartMetaSet);
 
-<<<<<<< HEAD
-
         _.reduce(this.survivalPlots, (acc: { [id: string]: ChartMeta }, survivalPlot) => {
             acc[survivalPlot.id] = {
                 uniqueKey: survivalPlot.id,
@@ -2182,9 +2180,6 @@ export class StudyViewPageStore {
             description: ''
         };
 
-
-=======
->>>>>>> upstream/master
         if (!_.isEmpty(this.mutationProfiles.result!)) {
             _chartMetaSet[UniqueKey.MUTATED_GENES_TABLE] = {
                 uniqueKey: UniqueKey.MUTATED_GENES_TABLE,
@@ -2353,8 +2348,6 @@ export class StudyViewPageStore {
         });
 
         const cancerTypeIds = _.uniq(this.queriedPhysicalStudies.result.map(study => study.cancerTypeId));
-<<<<<<< HEAD
-        
         this.chartsType.set(UniqueKey.ADMIXTURE_DATA, ChartTypeEnum.ADMIX_BAR_CHART);
         this.chartsDimension[UniqueKey.ADMIXTURE_DATA] = STUDY_VIEW_CONFIG.layout.dimensions[ChartTypeEnum.ADMIX_BAR_CHART];
         if (admixEASFlag && admixSASFlag && admixEURFlag && admixAMRFlag && admixAFRFlag) {
@@ -2376,8 +2369,6 @@ export class StudyViewPageStore {
                 this.changeChartVisibility(UniqueKey.DISEASE_FREE_SURVIVAL, true);
             }
         }
-=======
->>>>>>> upstream/master
 
         this.chartsType.set(UniqueKey.MUTATION_COUNT_CNA_FRACTION, ChartTypeEnum.SCATTER);
         this.chartsDimension[UniqueKey.MUTATION_COUNT_CNA_FRACTION] = STUDY_VIEW_CONFIG.layout.dimensions[ChartTypeEnum.SCATTER];
