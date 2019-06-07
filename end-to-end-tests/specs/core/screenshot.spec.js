@@ -59,7 +59,7 @@ function runResultsTestSuite(prefix){
 
     it(`${prefix} coexpression tab`, function(){
         browser.click("a.tabAnchor_coexpression");
-        browser.waitForVisible('div[data-test="CoExpressionPlot"]',10000);
+        browser.waitForVisible('div[data-test="CoExpressionPlot"]',60000);
         var res = browser.checkElement('[data-test="coExpressionTabDiv"]', { hide:['.qtip'] } );
         assertScreenShotMatch(res);
     });
@@ -124,7 +124,7 @@ describe('result page screenshot tests', function(){
 describe('expression tab', function() {
     it("expression tab with complex oql", ()=>{
         goToUrlAndSetLocalStorage(`${CBIOPORTAL_URL}/results/expression?cancer_study_id=all&Z_SCORE_THRESHOLD=2&RPPA_SCORE_THRESHOLD=2&data_priority=0&case_set_id=all&gene_list=TP53%3AMUT%3B&geneset_list=%20&tab_index=tab_visualize&Action=Submit&cancer_study_list=acc_tcga%2Cchol_tcga%2Cesca_tcga&show_samples=false`);
-        browser.waitForExist(".borderedChart svg", 10000);
+        browser.waitForExist(".borderedChart svg", 60000);
         var res = browser.checkElement('[data-test="expressionTabDiv"]');
         assertScreenShotMatch(res);
     });
@@ -192,7 +192,7 @@ describe('result page tabs, loading from session id', function(){
 
         var url = `${CBIOPORTAL_URL}/results?session_id=5bbe8197498eb8b3d5684271`;
         goToUrlAndSetLocalStorage(url);
-        waitForOncoprint(10000);
+        waitForOncoprint(15000);
     });
 
     runResultsTestSuite('session');

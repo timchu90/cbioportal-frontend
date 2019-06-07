@@ -8,27 +8,13 @@ import {
     SampleIdentifier,
     StudyViewFilter
 } from "shared/api/generated/CBioPortalAPIInternal";
-import {CancerStudy, ClinicalAttribute, Gene, Sample} from "shared/api/generated/CBioPortalAPI";
+import {CancerStudy, ClinicalAttribute, Gene, PatientIdentifier, Sample} from "shared/api/generated/CBioPortalAPI";
 import * as React from "react";
 import {buildCBioPortalPageUrl} from "../../shared/api/urls";
 import {IStudyViewScatterPlotData} from "./charts/scatterPlot/StudyViewScatterPlot";
 import {BarDatum} from "./charts/barChart/BarChart";
 import {
-    AnalysisGroup,
-    ClinicalDataTypeEnum,
-    Datalabel,
-    StudyViewFilterWithSampleIdentifierFilters,
-    StudyWithSamples
-} from "pages/studyView/StudyViewPageStore";
-import {
-    ChartMeta,
-    ChartMetaDataType,
-    ChartMetaDataTypeEnum,
-    ChartType,
-    ClinicalDataCountSet,
-    ClinicalDataCountWithColor,
-    ClinicalDataType,
-    UniqueKey
+    StudyViewPageTabKeyEnum
 } from "./StudyViewPageStore";
 import {Layout} from 'react-grid-layout';
 import internalClient from "shared/api/cbioportalInternalClientInstance";
@@ -38,6 +24,117 @@ import {ChartDimension, ChartTypeEnum, Position, STUDY_VIEW_CONFIG} from "./Stud
 import {IStudyViewDensityScatterPlotDatum} from "./charts/scatterPlot/StudyViewDensityScatterPlot";
 import MobxPromise from 'mobxpromise';
 import {getTextWidth} from "../../shared/lib/wrapText";
+import {CNA_COLOR_AMP, CNA_COLOR_HOMDEL, DEFAULT_NA_COLOR, getClinicalValueColor} from "shared/lib/Colors";
+import {StudyViewComparisonGroup} from "../groupComparison/GroupComparisonUtils";
+
+
+// Cannot use ClinicalDataTypeEnum here for the strong type. The model in the type is not strongly typed
+export enum ClinicalDataTypeEnum {
+    SAMPLE = 'SAMPLE',
+    PATIENT = 'PATIENT',
+}
+
+export type ClinicalDataType = 'SAMPLE' | 'PATIENT';
+export type ChartType =
+    'PIE_CHART'
+    | 'BAR_CHART'
+    | 'SURVIVAL'
+    | 'TABLE'
+    | 'SCATTER'
+    | 'MUTATED_GENES_TABLE'
+    | 'CNA_GENES_TABLE'
+    | 'NONE';
+
+export enum UniqueKey {
+    MUTATED_GENES_TABLE = 'MUTATED_GENES_TABLE',
+    CNA_GENES_TABLE = 'CNA_GENES_TABLE',
+    CUSTOM_SELECT = 'CUSTOM_SELECT',
+    SELECTED_COMPARISON_GROUPS = 'SELECTED_COMPARISON_GROUPS',
+    MUTATION_COUNT_CNA_FRACTION = 'MUTATION_COUNT_CNA_FRACTION',
+    DISEASE_FREE_SURVIVAL = 'DFS_SURVIVAL',
+    OVERALL_SURVIVAL = 'OS_SURVIVAL',
+    CANCER_STUDIES = 'CANCER_STUDIES',
+    MUTATION_COUNT = "SAMPLE_MUTATION_COUNT",
+    FRACTION_GENOME_ALTERED = "SAMPLE_FRACTION_GENOME_ALTERED",
+    WITH_MUTATION_DATA = "WITH_MUTATION_DATA",
+    WITH_CNA_DATA = "WITH_CNA_DATA"
+}
+
+export type AnalysisGroup = { value: string, color: string, legendText?: string };
+
+export enum ChartMetaDataTypeEnum {
+    CLINICAL = 'CLINICAL',
+    GENOMIC = 'GENOMIC'
+}
+
+export type ChartMetaDataType = ChartMetaDataTypeEnum.CLINICAL | ChartMetaDataTypeEnum.GENOMIC;
+export type ChartMeta = {
+    clinicalAttribute?: ClinicalAttribute,
+    uniqueKey: string,
+    displayName: string,
+    description: string,
+    dimension: ChartDimension,
+    priority: number,
+    dataType: ChartMetaDataType,
+    patientAttribute: boolean,
+    chartType: ChartType,
+    renderWhenDataChange: boolean
+}
+export type ClinicalDataCountSet = { [attrId: string]: number };
+export type StudyWithSamples = CancerStudy & {
+    uniqueSampleKeys: string[]
+}
+export type StudyViewFilterWithSampleIdentifierFilters = StudyViewFilter & {
+    sampleIdentifiersSet: { [id: string]: SampleIdentifier[] }
+}
+
+export enum Datalabel {
+    YES = 'YES',
+    NO = 'NO',
+    NA = "NA"
+}
+
+export const SPECIAL_CHARTS: ChartMeta[] = [{
+    uniqueKey: UniqueKey.CANCER_STUDIES,
+    displayName: 'Cancer Studies',
+    description: 'Cancer Studies',
+    dataType: ChartMetaDataTypeEnum.CLINICAL,
+    patientAttribute: false,
+    chartType: ChartTypeEnum.PIE_CHART,
+    dimension: {
+        w: 1,
+        h: 1
+    },
+    renderWhenDataChange: false,
+    priority: 70
+},
+    {
+        uniqueKey: UniqueKey.WITH_MUTATION_DATA,
+        displayName: 'With Mutation Data',
+        description: 'With Mutation Data',
+        chartType: ChartTypeEnum.PIE_CHART,
+        dataType: ChartMetaDataTypeEnum.GENOMIC,
+        patientAttribute: false,
+        dimension: {
+            w: 1,
+            h: 1
+        },
+        priority: 0,
+        renderWhenDataChange: false
+    }, {
+        uniqueKey: UniqueKey.WITH_CNA_DATA,
+        displayName: 'With CNA Data',
+        description: 'With CNA Data',
+        chartType: ChartTypeEnum.PIE_CHART,
+        dataType: ChartMetaDataTypeEnum.GENOMIC,
+        patientAttribute: false,
+        dimension: {
+            w: 1,
+            h: 1
+        },
+        priority: 0,
+        renderWhenDataChange: false
+    }];
 
 export const COLORS = [
     STUDY_VIEW_CONFIG.colors.theme.primary, STUDY_VIEW_CONFIG.colors.theme.secondary,
@@ -116,7 +213,7 @@ export function getClinicalAttributeOverlay(displayName: string, description: st
     </div>;
 }
 
-export function updateGeneQuery(geneQueries: SingleGeneQuery[], selectedGene: string): string {
+export function updateGeneQuery(geneQueries: SingleGeneQuery[], selectedGene: string): SingleGeneQuery[] {
 
     let updatedQueries = _.filter(geneQueries,query=> query.gene !== selectedGene)
     if(updatedQueries.length === geneQueries.length){
@@ -125,7 +222,7 @@ export function updateGeneQuery(geneQueries: SingleGeneQuery[], selectedGene: st
             alterations: false
         })
     }
-    return updatedQueries.map(query=>unparseOQLQueryLine(query)).join(' ');
+    return updatedQueries;
 
 }
 
@@ -873,7 +970,7 @@ export function getCNAByAlteration(alteration: number) {
 
 export function getCNAColorByAlteration(alteration: number):string|undefined {
     if ([-2, 2].includes(alteration))
-        return alteration === -2 ? STUDY_VIEW_CONFIG.colors.deletion : STUDY_VIEW_CONFIG.colors.amplification;
+        return alteration === -2 ? CNA_COLOR_HOMDEL : CNA_COLOR_AMP;
     return undefined;
 }
 
@@ -1112,16 +1209,11 @@ export function getQValue(qvalue: number):string {
     }
 }
 
-export function getClinicalAttrFixedColor(value: string): string
-{
-    return STUDY_VIEW_CONFIG.colors.reservedValue[value.replace(/\s/g, '').toUpperCase()];
-}
-
 export function pickClinicalAttrFixedColors(data: ClinicalDataCount[]): {[attribute: string]: string}
 {
     return _.reduce(data, (acc: { [id: string]: string }, slice) => {
         // pick a fixed color if predefined
-        const fixed = isNAClinicalValue(slice.value) ? STUDY_VIEW_CONFIG.colors.na : getClinicalAttrFixedColor(slice.value);
+        const fixed = isNAClinicalValue(slice.value) ? DEFAULT_NA_COLOR : getClinicalValueColor(slice.value);
 
         if (fixed) {
             // update the map
@@ -1131,6 +1223,8 @@ export function pickClinicalAttrFixedColors(data: ClinicalDataCount[]): {[attrib
         return acc;
     }, {});
 }
+
+export type ClinicalDataCountWithColor = ClinicalDataCount & { color: string }
 
 export function getClinicalDataCountWithColorByClinicalDataCount(counts:ClinicalDataCount[]):ClinicalDataCountWithColor[] {
     counts.sort(clinicalDataCountComparator);
@@ -1149,8 +1243,8 @@ export function pickClinicalAttrColorsByIndex(data: ClinicalDataCount[],
     let colorIndex = 0;
 
     return _.reduce(data, (acc: { [id: string]: string }, slice) => {
-        if (!isNAClinicalValue(slice.value) && !getClinicalAttrFixedColor(slice.value)) {
-            acc[slice.value] = availableColors[colorIndex];
+        if (!isNAClinicalValue(slice.value) && !getClinicalValueColor(slice.value)) {
+            acc[slice.value] = availableColors[colorIndex % availableColors.length];
             colorIndex++;
         }
         return acc;
@@ -1397,4 +1491,43 @@ export function getClinicalDataCountWithColorByCategoryCounts(yesCount:number, n
         }
     }
     return getClinicalDataCountWithColorByClinicalDataCount(_.values(dataCountSet));
+}
+
+export function getStudyViewTabId(pathname:string) {
+    const match = pathname.match(/study\/([^\/]+)/);
+    if (match) {
+        return match[1] as StudyViewPageTabKeyEnum;
+    } else {
+        return undefined;
+    }
+}
+
+export function getSelectedGroupNames(
+    groups:Pick<StudyViewComparisonGroup, "name">[]
+) {
+    if (groups.length <= 2) {
+        return groups.map(group=>group.name).join(" and ");
+    } else {
+        return `${groups[0].name} and ${groups.length-1} other groups`;
+    }
+}
+
+export function getPatientIdentifiers(
+    groups:Pick<StudyViewComparisonGroup, "studies">[]
+) {
+    return _.uniqWith(
+        _.flattenDeep<PatientIdentifier>(
+            groups.map(group=>group.studies.map(study=>{
+                const studyId = study.id;
+                return study.patients.map(patientId=>({ studyId, patientId }));
+            }))
+        ),
+        (id1, id2)=>((id1.patientId === id2.patientId) && (id1.studyId === id2.studyId))
+    );
+}
+
+export function isSpecialChart(chartMeta: ChartMeta) {
+    return SPECIAL_CHARTS.findIndex(
+        cm => cm.uniqueKey === chartMeta.uniqueKey
+    ) > -1;
 }

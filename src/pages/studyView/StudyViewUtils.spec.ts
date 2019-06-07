@@ -43,7 +43,11 @@ import {
     showOriginStudiesInSummaryDescription,
     shouldShowChart,
     toFixedDigit,
-    updateGeneQuery
+    updateGeneQuery,
+    StudyViewFilterWithSampleIdentifierFilters,
+    ChartMeta,
+    ChartMetaDataTypeEnum,
+    getStudyViewTabId
 } from 'pages/studyView/StudyViewUtils';
 import {
     ClinicalDataIntervalFilterValue,
@@ -53,17 +57,18 @@ import {
 } from 'shared/api/generated/CBioPortalAPIInternal';
 import {CancerStudy, ClinicalAttribute, Gene} from 'shared/api/generated/CBioPortalAPI';
 import {
-    ChartMeta,
-    ChartMetaDataTypeEnum,
-    StudyViewFilterWithSampleIdentifierFilters,
-    UniqueKey
+    StudyViewPageTabKeyEnum
 } from "./StudyViewPageStore";
+import {
+    UniqueKey
+} from "./StudyViewUtils";
 import {Layout} from 'react-grid-layout';
 import sinon from 'sinon';
 import internalClient from 'shared/api/cbioportalInternalClientInstance';
 import {VirtualStudy} from 'shared/model/VirtualStudy';
-import {ChartTypeEnum, STUDY_VIEW_CONFIG} from "./StudyViewConfig";
+import {ChartTypeEnum} from "./StudyViewConfig";
 import {MobxPromise} from "mobxpromise";
+import {DEFAULT_NA_COLOR, RESERVED_CLINICAL_VALUE_COLORS} from "shared/lib/Colors";
 
 describe('StudyViewUtils', () => {
     const emptyStudyViewFilter: StudyViewFilter = {
@@ -75,13 +80,31 @@ describe('StudyViewUtils', () => {
 
     describe('updateGeneQuery', () => {
         it('when gene selected in table', () => {
-            assert.equal(updateGeneQuery([{ gene: 'TP53', alterations: false }], 'TTN'), 'TP53 TTN',);
-            assert.equal(updateGeneQuery([{ gene: 'TP53', alterations: false }, { gene: 'TTN', alterations: false }], 'ALK'), 'TP53 TTN ALK',);
+            assert.deepEqual(updateGeneQuery([{gene: 'TP53', alterations: false}], 'TTN'), [{
+                gene: 'TP53',
+                alterations: false
+            }, {gene: 'TTN', alterations: false}]);
+            assert.deepEqual(updateGeneQuery([{gene: 'TP53', alterations: false}, {
+                gene: 'TTN',
+                alterations: false
+            }], 'ALK'), [{gene: 'TP53', alterations: false}, {gene: 'TTN', alterations: false}, {
+                gene: 'ALK',
+                alterations: false
+            }]);
         });
         it('when gene unselected in table', () => {
-            assert.equal(updateGeneQuery([{ gene: 'TP53', alterations: false }], 'TP53'), '');
-            assert.equal(updateGeneQuery([{ gene: 'TP53', alterations: false }, { gene: 'TTN', alterations: false }], 'TP53'), 'TTN',);
-            assert.equal(updateGeneQuery([{ gene: 'TP53', alterations: false }, { gene: 'TTN', alterations: false }], 'ALK'), 'TP53 TTN ALK',);
+            assert.deepEqual(updateGeneQuery([{gene: 'TP53', alterations: false}], 'TP53'), []);
+            assert.deepEqual(updateGeneQuery([{gene: 'TP53', alterations: false}, {
+                gene: 'TTN',
+                alterations: false
+            }], 'TP53'), [{gene: 'TTN', alterations: false}]);
+            assert.deepEqual(updateGeneQuery([{gene: 'TP53', alterations: false}, {
+                gene: 'TTN',
+                alterations: false
+            }], 'ALK'), [{gene: 'TP53', alterations: false}, {gene: 'TTN', alterations: false}, {
+                gene: 'ALK',
+                alterations: false
+            }]);
         });
     });
 
@@ -1122,43 +1145,57 @@ describe('StudyViewUtils', () => {
                 "count": 16
             },
             {
-                "value": "maybe",
+                "value": "WHY",
                 "count": 46
             },
             {
-                "value": "WHY",
+                "value": "weather",
+                "count": 36
+            },
+            {
+                "value": "is",
+                "count": 36
+            },
+            {
+                "value": "so",
+                "count": 36
+            },
+            {
+                "value": "hot",
                 "count": 36
             }
         ];
 
         it ('picks predefined colors for known clinical attribute values', () => {
             const colors = pickClinicalDataColors(clinicalDataCountWithFixedValues);
-
-            assert.equal(colors["TRUE"], "#109618");
-            assert.equal(colors["FALSE"], "#DC3912");
-            assert.equal(colors["NA"], "#CCCCCC");
+            assert.equal(colors["TRUE"], RESERVED_CLINICAL_VALUE_COLORS.true);
+            assert.equal(colors["FALSE"], RESERVED_CLINICAL_VALUE_COLORS.false);
+            assert.equal(colors["NA"], RESERVED_CLINICAL_VALUE_COLORS.na);
         });
 
         it ('picks predefined colors for known clinical attribute values in mixed letter case', () => {
             const colors = pickClinicalDataColors(clinicalDataCountWithFixedMixedCaseValues);
 
-            assert.equal(colors["Yes"], "#109618");
-            assert.equal(colors["No"], "#DC3912");
-            assert.equal(colors["Na"], "#CCCCCC");
-            assert.equal(colors["Male"], "#2986E2");
-            assert.equal(colors["F"], "#DC3912");
+            assert.equal(colors["Yes"], RESERVED_CLINICAL_VALUE_COLORS.yes);
+            assert.equal(colors["No"], RESERVED_CLINICAL_VALUE_COLORS.no);
+            assert.equal(colors["Na"], RESERVED_CLINICAL_VALUE_COLORS.na);
+            assert.equal(colors["Male"], RESERVED_CLINICAL_VALUE_COLORS.male);
+            assert.equal(colors["F"], RESERVED_CLINICAL_VALUE_COLORS.f);
         });
 
         it ('does not pick already picked colors again for non-fixed values', () => {
-            const availableColors = ["#66AA00", "#666666", "#2986E2", "#CCCCCC", "#DC3912", "#f88508", "#109618"]
+            const availableColors = ["#66AA00", "#666666", "#2986E2", RESERVED_CLINICAL_VALUE_COLORS.na, RESERVED_CLINICAL_VALUE_COLORS.no, "#f88508", RESERVED_CLINICAL_VALUE_COLORS.yes, "#f88507"];
 
             const colors = pickClinicalDataColors(clinicalDataCountWithBothFixedAndOtherValues, availableColors);
 
-            assert.equal(colors["Yes"], "#109618");
-            assert.equal(colors["NO"], "#DC3912");
-            assert.equal(colors["na"], "#CCCCCC");
-            assert.equal(colors["maybe"], "#66AA00");
-            assert.equal(colors["WHY"], "#666666");
+            assert.equal(colors["Yes"], RESERVED_CLINICAL_VALUE_COLORS.yes);
+            assert.equal(colors["NO"], RESERVED_CLINICAL_VALUE_COLORS.no);
+            assert.equal(colors["na"], RESERVED_CLINICAL_VALUE_COLORS.na);
+            assert.equal(colors["WHY"], "#66AA00");
+            assert.equal(colors["weather"], "#666666");
+            assert.equal(colors["is"], "#2986E2");
+            assert.equal(colors["so"], "#f88508");
+            assert.equal(colors["hot"], "#f88507");
         });
     });
 
@@ -1768,7 +1805,7 @@ describe('StudyViewUtils', () => {
             }]);
             assert.equal(result.length, 2);
             assert.equal(result[0].value, 'Stage I');
-            assert.equal(result[1].color, STUDY_VIEW_CONFIG.colors.na);
+            assert.equal(result[1].color, DEFAULT_NA_COLOR);
         });
 
         it('Test the reserved value', () => {
@@ -1780,8 +1817,8 @@ describe('StudyViewUtils', () => {
                 value: 'F'
             }]);
             assert.equal(result.length, 2);
-            assert.equal(result[0].color, STUDY_VIEW_CONFIG.colors.reservedValue.MALE);
-            assert.equal(result[1].color, STUDY_VIEW_CONFIG.colors.reservedValue.F);
+            assert.equal(result[0].color, RESERVED_CLINICAL_VALUE_COLORS.male);
+            assert.equal(result[1].color, RESERVED_CLINICAL_VALUE_COLORS.f);
         });
     });
 
@@ -2148,4 +2185,14 @@ describe('StudyViewUtils', () => {
             assert.equal(getPositionYByUniqueKey(layoutForPositionTest, 'test'), 1);
         });
     })
+
+    describe("getStudyViewTabId", ()=>{
+        it("gets study view tab id correctly", ()=>{
+            assert.equal(getStudyViewTabId("study"), undefined);
+            assert.equal(getStudyViewTabId("study/"), undefined);
+            assert.equal(getStudyViewTabId("study/asdf"), "asdf" as any);
+            assert.equal(getStudyViewTabId("study/summary"), StudyViewPageTabKeyEnum.SUMMARY);
+            assert.equal(getStudyViewTabId("study/summary/"), StudyViewPageTabKeyEnum.SUMMARY);
+        });
+    });
 });

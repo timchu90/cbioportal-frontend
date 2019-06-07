@@ -22,7 +22,7 @@ import {
     MUT_COLOR_FUSION, MUT_COLOR_INFRAME, MUT_COLOR_INFRAME_PASSENGER,
     MUT_COLOR_MISSENSE, MUT_COLOR_MISSENSE_PASSENGER, MUT_COLOR_OTHER, MUT_COLOR_PROMOTER, MUT_COLOR_TRUNC,
     MUT_COLOR_TRUNC_PASSENGER
-} from "../../../shared/components/oncoprint/geneticrules";
+} from "shared/lib/Colors";
 import {CoverageInformation} from "../ResultsViewPageStoreUtils";
 import {IBoxScatterPlotData} from "../../../shared/components/plots/BoxScatterPlot";
 import {AlterationTypeConstants, AnnotatedMutation, AnnotatedNumericGeneMolecularData} from "../ResultsViewPageStore";
@@ -1092,6 +1092,11 @@ export function boxPlotTooltip(
     return generalScatterPlotTooltip(d, horizontal ? "value" : "category", horizontal ? "category" : "value");
 }
 
+export function logScalePossibleForProfile(profileId:string) {
+    return !(/zscore/i.test(profileId)) &&
+        /rna_seq/i.test(profileId);
+}
+
 export function logScalePossible(
     axisSelection: AxisMenuSelection
 ) {
@@ -1099,8 +1104,7 @@ export function logScalePossible(
         // molecular profile
         return !!(
             axisSelection.dataSourceId &&
-            !(/zscore/i.test(axisSelection.dataSourceId)) &&
-            /rna_seq/i.test(axisSelection.dataSourceId)
+            logScalePossibleForProfile(axisSelection.dataSourceId)
         );
     } else {
         // clinical attribute
@@ -1318,12 +1322,8 @@ function makeScatterPlotData_profiledReport(
 
 export function getCnaQueries(
     horzSelection:AxisMenuSelection,
-    vertSelection:AxisMenuSelection,
-    cnaDataShown:boolean
+    vertSelection:AxisMenuSelection
 ) {
-    if (!cnaDataShown) {
-        return [];
-    }
     const queries:{entrezGeneId:number}[] = [];
     if (horzSelection.dataType !== CLIN_ATTR_DATA_TYPE && horzSelection.entrezGeneId !== undefined) {
         queries.push({entrezGeneId: horzSelection.entrezGeneId});
