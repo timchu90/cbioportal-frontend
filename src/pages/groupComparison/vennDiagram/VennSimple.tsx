@@ -2,16 +2,16 @@ import * as React from "react";
 import {observer} from "mobx-react";
 import {computed, observable} from "mobx";
 import autobind from "autobind-decorator";
-import {ComparisonGroup} from "./GroupComparisonUtils";
+import {ComparisonGroup} from "../GroupComparisonUtils";
 import * as d3 from 'd3';
 import _ from "lodash";
-import MemoizedHandlerFactory from "../../shared/lib/MemoizedHandlerFactory";
+import MemoizedHandlerFactory from "../../../shared/lib/MemoizedHandlerFactory";
 import measureText from "measure-text";
 import * as ReactDOM from "react-dom";
 import {Popover} from "react-bootstrap";
 import classnames from "classnames";
-import styles from "../resultsView/survival/styles.module.scss";
-import {pluralize} from "../../public-lib/lib/StringUtils";
+import styles from "../../resultsView/survival/styles.module.scss";
+import {pluralize} from "../../../public-lib/lib/StringUtils";
 import {
     blendColors,
     getExcludedIndexes,
@@ -19,8 +19,8 @@ import {
     joinGroupNames,
     regionIsSelected,
     toggleRegionSelected
-} from "./OverlapUtils";
-import {computeVennJsSizes, lossFunction} from "./VennUtils";
+} from "../OverlapUtils";
+import {computeVennLayout, getRegionLabelPosition, lossFunction, scaleSolution} from "./VennUtils";
 
 const VennJs = require("venn.js");
 
@@ -77,34 +77,7 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
     }
 
     @computed get layoutParams() {
-        const data = this.regions.map(r=>({
-            size: r.vennJsSize,
-            sets: r.combination.map(i=>this.props.groups[i].uid),
-        }));
-
-        const padding = 20;
-
-        let solution = VennJs.venn(data, {
-            lossFunction
-        });
-        solution = VennJs.normalizeSolution(solution, Math.PI/2, null);
-        const circles = VennJs.scaleSolution(solution, this.props.width, this.props.height, padding);
-        const textCenters = VennJs.computeTextCentres(circles, data);
-
-        return {
-            circles, textCenters
-        }
-    }
-
-    @computed get circleRadii() {
-        return _.mapValues(this.layoutParams.circles, c=>c.radius);
-    }
-
-    @computed get circleCenters() {
-        return _.mapValues(this.layoutParams.circles, c=>({ x:c.x, y: c.y }));
-    }
-
-    @computed get regions() {
+        // First generate regions
         let combinations:number[][]; // in painting order so that mouse interactions look right
         switch (this.props.groups.length) {
             case 2:
@@ -118,7 +91,7 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
                 break;
         }
 
-        return computeVennJsSizes(combinations.map(combination=>{
+        const regions = combinations.map(combination=>{
             // compute the cases in this region
             let casesInRegion = _.intersection(...combination.map(index=>this.props.groups[index].cases));
             const intersectionSize = casesInRegion.length;
@@ -130,21 +103,53 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
                 intersectionSize,
                 numCases: casesInRegion.length,
                 // compute the fill based on the colors of the included groups
-                color: blendColors(combination.map(index=>this.props.uidToGroup[this.props.groups[index].uid].color))
+                color: blendColors(combination.map(index=>this.props.uidToGroup[this.props.groups[index].uid].color)),
+                labelPosition: {x:-1, y:-1} as {x:number, y:number} | null
             };
+        });
+
+        const data = regions.map(r=>({
+            size: r.intersectionSize,
+            sets: r.combination.map(i=>this.props.groups[i].uid),
+            preciseSize : r.numCases
         }));
+
+        const padding = 20;
+
+        let solution = computeVennLayout(data, {
+            maxIterations: 10000
+        });
+
+        const rectangles = scaleSolution(solution, this.props.width, this.props.height, padding);
+        for (const region of regions) {
+            if (region.numCases > 0) {
+                region.labelPosition = getRegionLabelPosition(
+                    region.combination.map(i=>this.props.groups[i].uid),
+                    rectangles
+                );
+            }
+        }
+
+        return {
+            rectangles, regions
+        }
     }
+
 
     @computed get displayElements() {
         // Compute all of the display elements of the venn diagram - the outline, the fills, and the text
 
+        const CORNER_RADIUS = 8;
+        const rectangleParams = this.layoutParams.rectangles;
         // compute the clip paths corresponding to each group circle
         const clipPaths = this.props.groups.map((group, index)=>(
             <clipPath id={`${this.props.uid}_circle_${index}`}>
-                <circle
-                    cx={this.circleCenters[group.uid].x}
-                    cy={this.circleCenters[group.uid].y}
-                    r={this.circleRadii[group.uid]}
+                <rect
+                    x={rectangleParams[group.uid].x}
+                    y={rectangleParams[group.uid].y}
+                    width={rectangleParams[group.uid].xLength}
+                    height={rectangleParams[group.uid].yLength}
+                    rx={CORNER_RADIUS}
                 />
             </clipPath>
         ));
@@ -152,7 +157,7 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
         const nonZeroClipPathContents:any[] = [];
         const nonZeroClipPathId = `${this.props.uid}_nonzero_areas`;
 
-        const elements = _.flattenDeep<any>(this.regions.map(region=>{
+        const elements = _.flattenDeep<any>(this.layoutParams.regions.map(region=>{
 
             // FOR EACH REGION: generate the filled area, and the "# cases" text for it
             // Each region is specified by the combination of groups corresponding to it
@@ -168,7 +173,7 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
                         y="0"
                         height={this.props.height}
                         width={this.props.width}
-                        fill={region.numCases > 0 ? region.color : "#ffffff" /* This makes empty intersection regions white */}
+                        fill={region.color}
                         style={{ cursor: region.numCases > 0 ? "pointer" : "default" }}
                         data-default-fill={region.color}
                         data-hover-fill={d3.hsl(region.color).brighter(1).rgb()}
@@ -192,21 +197,26 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
             }
 
             return [hoverArea];
-        }).concat(_.sortBy(this.regions.filter(r=>r.combination.length === 1), r=>-r.vennJsSize).map(r=>{
+        }));
+
+        const outlines = _.sortBy(this.layoutParams.regions.filter(r=>r.combination.length === 1), r=>-r.intersectionSize).map(r=>{
             // draw the outlines of the circles
             const uid = this.props.groups[r.combination[0]].uid;
             return (
-                <circle
-                    cx={this.circleCenters[uid].x}
-                    cy={this.circleCenters[uid].y}
-                    r={this.circleRadii[uid]}
+                <rect
+                    x={rectangleParams[uid].x}
+                    y={rectangleParams[uid].y}
+                    width={rectangleParams[uid].xLength}
+                    height={rectangleParams[uid].yLength}
                     fill="none"
                     stroke={r.color}
                     strokeWidth={2}
+                    rx={CORNER_RADIUS}
                 />
             );
-        }))).concat(_.flattenDeep<any>(this.regions.map(region=>{
-            if (region.numCases === 0) {
+        });
+        const textElements = _.flattenDeep<any>(this.layoutParams.regions.map(region=>{
+            if (region.numCases === 0 || !region.labelPosition) {
                 return [];
             }
 
@@ -216,12 +226,12 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
             // Add rect behind for ease of reading
             const textSize = measureText({text:textContents, fontFamily:"Arial", fontSize:"13px", lineHeight: 1});
             const padding = 4;
-            const textPosition = this.layoutParams.textCenters[region.combination.map(i=>this.props.groups[i].uid).join(",")];
+            const textPosition = region.labelPosition;
             let textBackground = null;
             if (selected) {
                 textBackground = <rect
                     x={textPosition.x - textSize.width.value / 2 - padding}
-                    y={textPosition.y - textSize.height.value}
+                    y={textPosition.y - textSize.height.value + 3}
                     width={textSize.width.value + 2*padding}
                     height={textSize.height.value + padding}
                     fill={"yellow"}
@@ -244,7 +254,7 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
                     {textContents}
                 </text>
             ];
-        })));
+        }));
 
         return (
             <>
@@ -273,6 +283,10 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
                 {clipPaths}
                 <g mask={`url(#${nonZeroClipPathId})`}>
                     {elements}
+                </g>
+                {outlines}
+                <g mask={`url(#${nonZeroClipPathId})`}>
+                    {textElements}
                 </g>
             </>
         );

@@ -5,7 +5,7 @@ import CBIOPORTAL_VICTORY_THEME from 'shared/theme/cBioPoralTheme';
 import _ from "lodash";
 import {action, computed, observable} from 'mobx';
 import {ComparisonGroup} from './GroupComparisonUtils';
-import VennSimple from "./VennSimple";
+import VennSimple from "./vennDiagram/VennSimple";
 import CreateGroupFromOverlap from "./CreateGroupFromOverlap";
 import GroupComparisonStore from "./GroupComparisonStore";
 import autobind from "autobind-decorator";
