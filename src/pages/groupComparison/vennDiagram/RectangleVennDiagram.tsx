@@ -20,11 +20,11 @@ import {
     regionIsSelected,
     toggleRegionSelected
 } from "../OverlapUtils";
-import {computeVennLayout, getRegionLabelPosition, lossFunction, scaleSolution} from "./VennUtils";
+import {computeRectangleVennLayout, getRegionLabelPosition, rectangleVennLossFunction, scaleAndCenterLayout} from "./VennUtils";
 
 const VennJs = require("venn.js");
 
-export interface IVennSimpleProps {
+export interface IRectangleVennDiagramProps {
     uid:string;
     groups: {
         uid: string;
@@ -51,7 +51,7 @@ function regionMouseOut(e:any) {
 }
 
 @observer
-export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
+export default class RectangleVennDiagram extends React.Component<IRectangleVennDiagramProps, {}> {
     @observable.ref svg:SVGElement|null = null;
     @observable.ref tooltipModel:{ combination:number[], numCases:number } | null = null;
     @observable mousePosition = { x:0, y:0 };
@@ -91,36 +91,51 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
                 break;
         }
 
+        // `regions` corresponds to exclusive regions in the diagram.
+        // For example, in a diagram with sets A and B, there's a region for the intersection of A and B,
+        //  a region for whats only in A, and a region for whats only in B.
         const regions = combinations.map(combination=>{
             // compute the cases in this region
             let casesInRegion = _.intersection(...combination.map(index=>this.props.groups[index].cases));
-            const intersectionSize = casesInRegion.length;
+            const sizeForVennJsInitialLayout = casesInRegion.length;
             for (const i of getExcludedIndexes(combination, this.props.groups.length)) {
                 _.pullAll(casesInRegion, this.props.groups[i].cases);
             }
             return {
                 combination,
-                intersectionSize,
+                sizeForVennJsInitialLayout,
                 numCases: casesInRegion.length,
                 // compute the fill based on the colors of the included groups
                 color: blendColors(combination.map(index=>this.props.uidToGroup[this.props.groups[index].uid].color)),
-                labelPosition: {x:-1, y:-1} as {x:number, y:number} | null
+                labelPosition: null as {x:number, y:number} | null
             };
         });
 
-        const data = regions.map(r=>({
-            size: r.intersectionSize,
+        // convert to form thats useful for algorithm
+        const regionsForAlgorithm = regions.map(r=>({
             sets: r.combination.map(i=>this.props.groups[i].uid),
-            preciseSize : r.numCases
+            size: r.numCases,
+            sizeForVennJsInitialLayout: r.sizeForVennJsInitialLayout
         }));
 
-        const padding = 20;
+        // the algorithm also needs all the sets
+        const sets = this.props.groups.map(g=>({
+            size: g.cases.length,
+            uid: g.uid,
+            color: this.props.uidToGroup[g.uid].color
+        }));
 
-        let solution = computeVennLayout(data, {
+        // compute a layout for the venn diagram using the specification given by the
+        //  sets and the regions
+        const unscaledLayout = computeRectangleVennLayout(regionsForAlgorithm, sets, {
             maxIterations: 10000
         });
 
-        const rectangles = scaleSolution(solution, this.props.width, this.props.height, padding);
+        // scale and center the layout in a normalized form for presenting
+        const padding = 20;
+        const rectangles = scaleAndCenterLayout(unscaledLayout, this.props.width, this.props.height, padding);
+
+        // compute label positions for nonempty regions
         for (const region of regions) {
             if (region.numCases > 0) {
                 region.labelPosition = getRegionLabelPosition(
@@ -131,12 +146,12 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
         }
 
         return {
-            rectangles, regions
+            rectangles, regions, sets
         }
     }
 
 
-    @computed get displayElements() {
+    @computed get svgElements() {
         // Compute all of the display elements of the venn diagram - the outline, the fills, and the text
 
         const CORNER_RADIUS = 8;
@@ -155,18 +170,18 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
         ));
 
         const nonZeroClipPathContents:any[] = [];
-        const nonZeroClipPathId = `${this.props.uid}_nonzero_areas`;
+        const nonZeroClipPathId = `${this.props.uid}_nonzero_regions`;
 
         const elements = _.flattenDeep<any>(this.layoutParams.regions.map(region=>{
 
-            // FOR EACH REGION: generate the filled area, and the "# cases" text for it
+            // FOR EACH REGION: generate the filled region, and the "# cases" text for it
             // Each region is specified by the combination of groups corresponding to it
             const comb = region.combination;
 
-            // generate clipped hover area by iteratively nesting a rect in all the clip paths
-            //  corresponding to groups in this area. This clips out, one by one, everything
+            // generate clipped hover region by iteratively nesting a rect in all the clip paths
+            //  corresponding to groups in this region. This clips out, one by one, everything
             //  except for the intersection.
-            let hoverArea:JSX.Element = (
+            let hoverRegion:JSX.Element = (
                 <g>
                     <rect
                         x="0"
@@ -186,22 +201,22 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
                 </g>
             );
             for (const index of comb) {
-                hoverArea = (
+                hoverRegion = (
                     <g clipPath={`url(#${this.props.uid}_circle_${index})`}>
-                        {hoverArea}
+                        {hoverRegion}
                     </g>
                 );
             }
             if (region.numCases > 0) {
-                nonZeroClipPathContents.push(hoverArea);
+                nonZeroClipPathContents.push(hoverRegion);
             }
 
-            return [hoverArea];
+            return [hoverRegion];
         }));
 
-        const outlines = _.sortBy(this.layoutParams.regions.filter(r=>r.combination.length === 1), r=>-r.intersectionSize).map(r=>{
-            // draw the outlines of the circles
-            const uid = this.props.groups[r.combination[0]].uid;
+        const outlines = _.sortBy(this.layoutParams.sets, s=>-s.size).map(s=>{
+            // draw the outlines of the rectangles
+            const uid = s.uid;
             return (
                 <rect
                     x={rectangleParams[uid].x}
@@ -209,7 +224,7 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
                     width={rectangleParams[uid].xLength}
                     height={rectangleParams[uid].yLength}
                     fill="none"
-                    stroke={r.color}
+                    stroke={s.color}
                     strokeWidth={2}
                     rx={CORNER_RADIUS}
                 />
@@ -332,7 +347,7 @@ export default class VennSimple extends React.Component<IVennSimpleProps, {}> {
                     onMouseMove={this.resetTooltip}
                     onClick={this.resetSelection}
                 />
-                {this.displayElements}
+                {this.svgElements}
                 {!!this.tooltipModel && (
                     (ReactDOM as any).createPortal(
                         <Popover

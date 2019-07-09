@@ -2,22 +2,25 @@ import _ from "lodash";
 import {nelderMead} from 'fmin';
 import {getDeterministicRandomNumber} from "../../../shared/components/plots/PlotUtils";
 
-type Area = {size:number, sets:string[], preciseSize: number};
-type SetRectangles = {[setId:string]:Rectangle};
+type Area = {size:number, sets:string[], sizeForVennJsInitialLayout:number};
+type Set = { size:number, uid:string};
+type SetRectangles = {[setUid:string]:Rectangle};
 type Rectangle = {x:number, y:number, xLength:number, yLength:number};// bottom-left aligned
 const VennJs = require("venn.js");
 
-function getMargin(x:number, y:number, setRectangles:SetRectangles) {
-    let margin = Number.POSITIVE_INFINITY;
+function getAxisAlignedDistanceToNearestRectangle(x:number, y:number, setRectangles:SetRectangles) {
+    let distance = Number.POSITIVE_INFINITY;
     for (const rect of _.values(setRectangles)) {
-        const marginFromLeft = Math.abs(x - rect.x);
-        const marginFromRight = Math.abs(x - (rect.x + rect.xLength));
-        const marginFromBottom = Math.abs(y - rect.y);
-        const marginFromTop = Math.abs(y - (rect.y + rect.yLength));
+        // get nearest axis-aligned distance from each side of `rect`
+        const distanceFromLeft = Math.abs(x - rect.x);
+        const distanceFromRight = Math.abs(x - (rect.x + rect.xLength));
+        const distanceFromBottom = Math.abs(y - rect.y);
+        const distanceFromTop = Math.abs(y - (rect.y + rect.yLength));
 
-        margin = Math.min(margin, marginFromLeft, marginFromRight, marginFromBottom, marginFromTop);
+        // keep track of the minimum one, over all rectangles `rect`
+        distance = Math.min(distance, distanceFromLeft, distanceFromRight, distanceFromBottom, distanceFromTop);
     }
-    return margin;
+    return distance;
 }
 
 export function getRegionLabelPosition(sets:string[], setRectangles:SetRectangles) {
@@ -28,7 +31,7 @@ export function getRegionLabelPosition(sets:string[], setRectangles:SetRectangle
     const yMin = sampleRect.y;
     const yMax = sampleRect.y + sampleRect.yLength;
 
-    // First sample to find an initial position thats inside the region
+    // First, sample to find an initial position thats inside the region
     const excludedSets = _.difference(Object.keys(setRectangles), sets);
     let initialPosition = null;
     let numSamples = 100;
@@ -45,23 +48,27 @@ export function getRegionLabelPosition(sets:string[], setRectangles:SetRectangle
             inside = inside && !isPointInsideRectangle(x, y, setRectangles[set]);
         }
         if (inside) {
-            const newMargin = getMargin(x, y, setRectangles);
+            const newMargin = getAxisAlignedDistanceToNearestRectangle(x, y, setRectangles);
             if (newMargin > bestMargin) {
                 bestMargin = newMargin;
                 initialPosition = {x,y};
             }
         }
     }
+
+    // Stop if we never found an initial point for the algorithm. This means the region is very small.
+    //  We just won't show a label for this region.
     if (!initialPosition) {
         console.log("couldnt find a place to put label");
         return null;
     }
 
-    // Optimize to find the biggest margin
+    // Starting with the point we found above, run an optimization algorithm to improve on it, finding a point that's
+    //  deep inside the region, far from the boundary. This will be a good place to put a label.
     const solution = nelderMead(
         function(values:number[]) {
             if (isPointInsideRegion(values[0], values[1], sets, excludedSets, setRectangles)) {
-                return -getMargin(values[0], values[1], setRectangles);
+                return -getAxisAlignedDistanceToNearestRectangle(values[0], values[1], setRectangles);
             } else {
                 return Number.POSITIVE_INFINITY;
             }
@@ -73,7 +80,7 @@ export function getRegionLabelPosition(sets:string[], setRectangles:SetRectangle
     return { x: solution[0], y:solution[1] };
 }
 
-export function rectangleArea(rectangle:SetRectangles[""]) {
+export function rectangleArea(rectangle:Rectangle) {
     return rectangle.xLength*rectangle.yLength;
 }
 
@@ -203,67 +210,45 @@ export function getApproximateRegionArea(
     return (numInside / numSamples) * (xMax - xMin) * (yMax - yMin);
 }
 
-export function lossFunction(
+export function rectangleVennLossFunction(
     setRectangles:SetRectangles,
-    areas:Area[]
+    areas:Area[],
+    sets:Set[]
 ) {
-    // NOTE: it seems like zeroAreaPenalty and rectangleRatioPenalty are not necessary, so I've commented them out,
-    //      but am leaving them commented in case we run into edge cases where those are an issue.
     let areaError = 0;
     let intersectionDistancePenalty = 0;
 
-    /* UNCOMMENT IF ZERO AREAS SHOW UP
-        let areasThatShouldBeZero = 0;
-     */
     for (const area of areas) {
         // Make regions proportional to their size
         const regionArea = getRegionArea(area.sets, setRectangles);
-        const error = (regionArea - area.preciseSize);
+        const error = (regionArea - area.size);
         areaError += error*error;
 
-        if (area.sets.length === 1) {
-            // Make each rectangle proportional to its size
-            const rectSize = rectangleArea(setRectangles[area.sets[0]]);
-            const rectSizeError = (rectSize - area.size);
-            areaError += rectSizeError*rectSizeError;
-        } else if (area.sets.length === 2 && regionArea === 0 && area.preciseSize > 0) {
+        if (area.sets.length === 2 && regionArea === 0 && area.size > 0) {
             // try to bring each pair of rectangles together if they should intersect and currently dont. Otherwise,
             //  the loss function only detects errors in intersection areas, so won't know how to move them to get better.
             intersectionDistancePenalty += rectangleDistance(
                 setRectangles[area.sets[0]], setRectangles[area.sets[1]]
             );
         }
-
-        /* UNCOMMENT IF ZERO AREAS SHOW UP
-        if (area.preciseSize === 0) {
-            if (size >= 0) {
-                areasThatShouldBeZero += size;
-            }
-        }*/
     }
 
-    // pressure to not have any areas representing zero be nonzero in the plot
-    const zeroAreaPenalty = 0;// UNCOMMENT IF ZERO AREAS SHOW UP: 5*areasThatShouldBeZero;
+    for (const set of sets) {
+        // Make each rectangle proportional to its size
+        const rectSize = rectangleArea(setRectangles[set.uid]);
+        const rectSizeError = (rectSize - set.size);
+        areaError += rectSizeError*rectSizeError;
+    }
 
-    // pressure to make the log ratio no bigger (i.e. rectangles no thinner) than 1.3, but
-    //  dont offer any reward after that for continuing to shrink the ratio
-    const smallestRectangleLogRatio = Math.min(..._.map(setRectangles, rectangle=>{
-        return Math.abs(Math.log(rectangle.xLength / rectangle.yLength));
-    }));
-
-    const rectangleRatioPenalty = 0;// UNCOMMENT IF EXCESSIVELY THIN RECTANGLES show UP: Math.max(smallestRectangleLogRatio, Math.log(1.3));
-
-    return areaError + zeroAreaPenalty + rectangleRatioPenalty + intersectionDistancePenalty;
+    return areaError + intersectionDistancePenalty;
 }
 
-export function computeVennLayout(areas:Area[], parameters:any) {
+export function computeRectangleVennLayout(areas:Area[], sets:Set[], parameters:any) {
     // based on https://github.com/benfred/venn.js/blob/master/src/layout.js#L7
     parameters = parameters || {};
-    //parameters.maxIterations = parameters.maxIterations || 500;
-    const loss = lossFunction;
 
     // Base our initial layout on the VennJs library's initial layout for circles.
-    const initialLayout = VennJs.bestInitialLayout(areas, parameters);
+    const initialLayout = VennJs.bestInitialLayout(areas.map(area=>({ sets: area.sets, size: area.sizeForVennJsInitialLayout })), parameters);
     const initialRectangles:SetRectangles = _.mapValues(initialLayout, circle=>({
         x: circle.x - circle.radius,
         y: circle.y - circle.radius,
@@ -320,7 +305,7 @@ export function computeVennLayout(areas:Area[], parameters:any) {
                 const setId = setIds[i];
                 current[setId] = vectorToRectangle(i, values);
             }
-            return loss(current, areas);
+            return rectangleVennLossFunction(current, areas, sets);
         },
         initial,
         parameters);
@@ -333,10 +318,12 @@ export function computeVennLayout(areas:Area[], parameters:any) {
         rectangles[setId] = vectorToRectangle(i, values);
     }
 
+    console.log(rectangleVennLossFunction(rectangles, areas, sets));
+
     return rectangles;
 }
 
-export function scaleSolution(solution:SetRectangles, width:number, height:number, padding:number) {
+export function scaleAndCenterLayout(layout:SetRectangles, width:number, height:number, padding:number) {
     // Based on https://github.com/benfred/venn.js/blob/d5a47bd12140f95a17402c6356af4631f53a0723/src/layout.js#L635
 
     function getBoundingBox(rectangles:Rectangle[]) {
@@ -352,8 +339,8 @@ export function scaleSolution(solution:SetRectangles, width:number, height:numbe
         };
     }
 
-    const rectangles = _.values(solution);
-    const setIds = Object.keys(solution);
+    const rectangles = _.values(layout);
+    const setIds = Object.keys(layout);
 
     width -= 2*padding;
     height -= 2*padding;
@@ -364,8 +351,8 @@ export function scaleSolution(solution:SetRectangles, width:number, height:numbe
 
     if ((xRange.max == xRange.min) ||
         (yRange.max == yRange.min)) {
-        console.log("not scaling solution: zero size detected");
-        return solution;
+        console.log("not scaling layout: zero size detected");
+        return layout;
     }
 
     const xScaling = width  / (xRange.max - xRange.min);
