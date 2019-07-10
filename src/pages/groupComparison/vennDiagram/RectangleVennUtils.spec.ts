@@ -1,7 +1,7 @@
 import {assert} from "chai";
-import {getApproximateRegionArea, getRegionArea} from "./VennUtils";
+import {getApproximateRegionArea, getRegionArea} from "./RectangleVennUtils";
 
-describe("VennUtils", () => {
+describe("RectangleVennUtils", () => {
     describe("getRegionArea", ()=>{
         it("one rectangle", ()=>{
             assert.approximately(getRegionArea(
