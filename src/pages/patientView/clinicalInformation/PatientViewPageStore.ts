@@ -787,8 +787,8 @@ export class PatientViewPageStore {
             this.discreteSampleToGenePanelId
         ],
         invoke: async() => {
-            let mutationPanelIds = _(this.mutationSampleToGenePanelId.result).values().remove((o) => !noGenePanelUsed(o)).value();
-            let cnaPanelIds = _(this.discreteSampleToGenePanelId.result).values().remove((o) => !noGenePanelUsed(o)).value();
+            let mutationPanelIds = _(this.mutationSampleToGenePanelId.result).values().remove((genePanelId) => !noGenePanelUsed(genePanelId)).value();
+            let cnaPanelIds = _(this.discreteSampleToGenePanelId.result).values().remove((genePanelId) => !noGenePanelUsed(genePanelId)).value();
             const allPanelIds = mutationPanelIds.concat(cnaPanelIds);
             return fetchGenePanelGeneData(allPanelIds);
         }

@@ -23,7 +23,8 @@ import {
     Gene,
     ReferenceGenomeGene,
     GenePanelDataFilter,
-    GenePanelToGene
+    GenePanelToGene,
+    GenePanelData
 } from "shared/api/generated/CBioPortalAPI";
 import defaultClient from "shared/api/cbioportalClientInstance";
 import internalClient from "shared/api/cbioportalInternalClientInstance";
@@ -550,7 +551,10 @@ export async function fetchSampleGenePanelData(molecularProfileId:string|undefin
     const genePanelDataFilter = {sampleIds} as GenePanelDataFilter;
     if (molecularProfileId) {
         const remoteData = await client.getGenePanelDataUsingPOST({molecularProfileId, genePanelDataFilter});
-        return _(remoteData).keyBy('sampleId').mapValues('genePanelId').value();
+        return _(remoteData)
+            .keyBy(genePanelData => genePanelData.sampleId)
+            .mapValues(genePanelData => genePanelData.genePanelId)
+            .value();
     }
     return {};
 }
