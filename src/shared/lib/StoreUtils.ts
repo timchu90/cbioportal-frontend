@@ -24,7 +24,8 @@ import {
     ReferenceGenomeGene,
     GenePanelDataFilter,
     GenePanelToGene,
-    GenePanelData
+    GenePanelData,
+    GenePanel
 } from "shared/api/generated/CBioPortalAPI";
 import defaultClient from "shared/api/cbioportalClientInstance";
 import internalClient from "shared/api/cbioportalInternalClientInstance";
@@ -547,28 +548,17 @@ export async function fetchCopyNumberData(discreteCNAData:MobxPromise<DiscreteCo
     }
 }
 
-export async function fetchSampleGenePanelData(molecularProfileId:string|undefined, sampleIds:string[]):Promise<{[sampleId: string]: string|undefined}> {
-    const genePanelDataFilter = {sampleIds} as GenePanelDataFilter;
-    if (molecularProfileId) {
-        const remoteData = await client.getGenePanelDataUsingPOST({molecularProfileId, genePanelDataFilter});
-        return _(remoteData)
-            .keyBy(genePanelData => genePanelData.sampleId)
-            .mapValues(genePanelData => genePanelData.genePanelId)
-            .value();
-    }
-    return {};
+export async function fetchGenePanelData(molecularProfileId:string, sampleIds:string[] = [], sampleListId:string = ""):Promise<{[sampleId: string]: GenePanelData}> {
+    const genePanelDataFilter:GenePanelDataFilter = {sampleIds, sampleListId};
+    const remoteData = await client.getGenePanelDataUsingPOST({molecularProfileId, genePanelDataFilter});
+    return _.keyBy(remoteData, (genePanelData) => genePanelData.sampleId);
 }
 
-export async function fetchGenePanelGeneData(genePanelIds:(string|undefined)[]):Promise<{[genePanelId:string]: number[]}> {
-    let genePanelId2Genes = {} as {[genePanelId:string]: number[]};
-    for (const genePanelId of genePanelIds) {
-        if (genePanelId) {
-            const genePanel = await client.getGenePanelUsingGET({genePanelId});
-            const entrezGeneIds = _.map(genePanel.genes, (d:GenePanelToGene) => d.entrezGeneId);
-            genePanelId2Genes[genePanelId] = entrezGeneIds;
-        }
-    }
-    return genePanelId2Genes;
+export async function fetchGenePanel(genePanelIds:string[]):Promise<{[genePanelId:string]: GenePanel}> {
+    const genePanels:{[genePanelId:string]: GenePanel} = {};
+    const uniquePanelIds = _.uniq(genePanelIds);
+    const remoteData = await Promise.all( _.map(uniquePanelIds, async(genePanelId) => await client.getGenePanelUsingGET({genePanelId}) ));
+    return _.keyBy(remoteData, (genePanel) => genePanel.genePanelId);
 }
 
 export function fetchMyCancerGenomeData(): IMyCancerGenomeData

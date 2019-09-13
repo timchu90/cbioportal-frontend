@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 import {ClinicalDataBySampleId} from "../../../shared/api/api-types-extended";
 import {
     ClinicalData, MolecularProfile, Sample, Mutation, DiscreteCopyNumberFilter, DiscreteCopyNumberData, MutationFilter,
-    CopyNumberCount, ClinicalDataMultiStudyFilter, ReferenceGenomeGene, GenePanelDataFilter
+    CopyNumberCount, ClinicalDataMultiStudyFilter, ReferenceGenomeGene, GenePanelData, GenePanel
 } from "../../../shared/api/generated/CBioPortalAPI";
 import client from "../../../shared/api/cbioportalClientInstance";
 import internalClient from "../../../shared/api/cbioportalInternalClientInstance";
@@ -70,8 +70,8 @@ import {
     fetchOncoKbCancerGenes,
     fetchVariantAnnotationsIndexedByGenomicLocation,
     fetchReferenceGenomeGenes,
-    fetchSampleGenePanelData,
-    fetchGenePanelGeneData,
+    fetchGenePanelData,
+    fetchGenePanel,
     noGenePanelUsed
 } from "shared/lib/StoreUtils";
 import {fetchHotspotsData} from "shared/lib/CancerHotspotsUtils";
@@ -767,32 +767,58 @@ export class PatientViewPageStore {
         invoke: ()=>Promise.resolve(indexHotspotsData(this.hotspotData))
     });
 
-    readonly mutationSampleToGenePanelId = remoteData<{[sampleId: string]: string|undefined}>({
+    readonly mutationSampleToGenePanelData = remoteData<{[sampleId: string]: GenePanelData}>({
         await:()=>[
             this.mutationMolecularProfileId
         ],
-        invoke: async() => fetchSampleGenePanelData(this.mutationMolecularProfileId.result, this.sampleIds)
+        invoke: async() => {
+            if (this.mutationMolecularProfileId.result) {
+                return fetchGenePanelData(this.mutationMolecularProfileId.result, this.sampleIds);
+            }
+            return {};
+        }
     }, {});
 
-    readonly discreteSampleToGenePanelId = remoteData<{[sampleId: string]: string|undefined}>({
+    @computed get mutationSampleToGenePanelId() {
+        return _.mapValues(this.mutationSampleToGenePanelData.result, (genePanelData) => genePanelData.genePanelId);
+    }
+
+    readonly discreteSampleToGenePanelData = remoteData<{[sampleId: string]: GenePanelData}>({
         await:()=>[
             this.molecularProfileIdDiscrete
         ],
-        invoke: async() => fetchSampleGenePanelData(this.molecularProfileIdDiscrete.result, this.sampleIds)
-    });
+        invoke: async() => {
+            if (this.molecularProfileIdDiscrete.result) {
+                return fetchGenePanelData(this.molecularProfileIdDiscrete.result, this.sampleIds);
+            }
+            return {};
+        }
+    }, {});
 
-    readonly genePanelIdToGenes = remoteData<{[genePanelId: string]: number[]}>({
+    @computed get discreteSampleToGenePanelId() {
+        return _.mapValues(this.discreteSampleToGenePanelData.result, (genePanelData) => genePanelData.genePanelId);
+    }
+
+    readonly genePanelIdToPanel = remoteData<{[genePanelId: string]: GenePanel}>({
         await:()=>[
-            this.mutationSampleToGenePanelId,
-            this.discreteSampleToGenePanelId
+            this.mutationSampleToGenePanelData,
+            this.discreteSampleToGenePanelData
         ],
         invoke: async() => {
-            let mutationPanelIds = _(this.mutationSampleToGenePanelId.result).values().remove((genePanelId) => !noGenePanelUsed(genePanelId)).value();
-            let cnaPanelIds = _(this.discreteSampleToGenePanelId.result).values().remove((genePanelId) => !noGenePanelUsed(genePanelId)).value();
-            const allPanelIds = mutationPanelIds.concat(cnaPanelIds);
-            return fetchGenePanelGeneData(allPanelIds);
+            const sampleGenePanelInfo = _.concat(_.values(this.mutationSampleToGenePanelData.result), _.values(this.discreteSampleToGenePanelData.result));
+            const panelIds = _(sampleGenePanelInfo)
+                .map((genePanelData) => genePanelData.genePanelId)
+                .filter((genePanelId) => !noGenePanelUsed(genePanelId))
+                .value();
+            return fetchGenePanel(panelIds);
         }
-    });
+    }, {});
+
+    @computed get genePanelIdToGenes() {
+        return _(this.genePanelIdToPanel.result)
+            .mapValues((genePanel) => _.map(genePanel.genes, (genePanelToGene) => genePanelToGene.entrezGeneId))
+            .value();
+    }
 
     @computed get mergedMutationData(): Mutation[][] {
         return mergeMutations(this.mutationData);
