@@ -553,8 +553,14 @@ export async function fetchCopyNumberData(discreteCNAData:MobxPromise<DiscreteCo
 }
 
 export async function fetchGenePanelData(molecularProfileId:string, sampleIds:string[] = [], sampleListId:string = ""):Promise<{[sampleId: string]: GenePanelData}> {
-    const genePanelDataFilter:GenePanelDataFilter = {sampleIds, sampleListId};
-    const remoteData = await client.getGenePanelDataUsingPOST({molecularProfileId, genePanelDataFilter});
+    const filter:any = {};
+    if (sampleIds.length > 0) {
+        filter.sampleIds = sampleIds;
+    };
+    if (sampleListId.length > 0) {
+        filter.sampleListId = sampleListId;
+    };
+    const remoteData = await client.getGenePanelDataUsingPOST({molecularProfileId, genePanelDataFilter: filter as GenePanelDataFilter});
     return _.keyBy(remoteData, (genePanelData) => genePanelData.sampleId);
 }
 
