@@ -781,7 +781,7 @@ export class PatientViewPageStore {
         invoke: async() => fetchSampleGenePanelData(this.molecularProfileIdDiscrete.result, this.sampleIds)
     });
 
-    readonly genePanelIdToGene = remoteData<{[genePanelId: string]: number[]}>({
+    readonly genePanelIdToGenes = remoteData<{[genePanelId: string]: number[]}>({
         await:()=>[
             this.mutationSampleToGenePanelId,
             this.discreteSampleToGenePanelId
