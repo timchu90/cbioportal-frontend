@@ -75,7 +75,7 @@ export const CompleteProfileTypeSignature = {
     WHOLE_GENOME_SEQ: 'WGS'
 };
 
-export function noGenePanelUsed(genePanelId:string):boolean {
+export function noGenePanelUsed(genePanelId:string|undefined):boolean {
     return genePanelId === CompleteProfileTypeSignature.UNKNOWN
         || genePanelId === CompleteProfileTypeSignature.WHOLE_EXOME_SEQ
         || genePanelId === CompleteProfileTypeSignature.WHOLE_GENOME_SEQ;
