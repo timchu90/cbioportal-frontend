@@ -767,7 +767,7 @@ export class PatientViewPageStore {
         invoke: ()=>Promise.resolve(indexHotspotsData(this.hotspotData))
     });
 
-    readonly mutationSampleToGenePanelData = remoteData<{[sampleId: string]: GenePanelData}>({
+    readonly sampleToMutationnGenePanelData = remoteData<{[sampleId: string]: GenePanelData}>({
         await:()=>[
             this.mutationMolecularProfileId
         ],
@@ -779,11 +779,11 @@ export class PatientViewPageStore {
         }
     }, {});
 
-    @computed get mutationSampleToGenePanelId() {
-        return _.mapValues(this.mutationSampleToGenePanelData.result, (genePanelData) => genePanelData.genePanelId);
+    @computed get sampleToMutationGenePanelId() {
+        return _.mapValues(this.sampleToMutationnGenePanelData.result, (genePanelData) => genePanelData.genePanelId);
     }
 
-    readonly discreteSampleToGenePanelData = remoteData<{[sampleId: string]: GenePanelData}>({
+    readonly sampleToDiscreteGenePanelData = remoteData<{[sampleId: string]: GenePanelData}>({
         await:()=>[
             this.molecularProfileIdDiscrete
         ],
@@ -795,17 +795,17 @@ export class PatientViewPageStore {
         }
     }, {});
 
-    @computed get discreteSampleToGenePanelId() {
-        return _.mapValues(this.discreteSampleToGenePanelData.result, (genePanelData) => genePanelData.genePanelId);
+    @computed get sampleToDiscreteGenePanelId() {
+        return _.mapValues(this.sampleToDiscreteGenePanelData.result, (genePanelData) => genePanelData.genePanelId);
     }
 
     readonly genePanelIdToPanel = remoteData<{[genePanelId: string]: GenePanel}>({
         await:()=>[
-            this.mutationSampleToGenePanelData,
-            this.discreteSampleToGenePanelData
+            this.sampleToMutationnGenePanelData,
+            this.sampleToDiscreteGenePanelData
         ],
         invoke: async() => {
-            const sampleGenePanelInfo = _.concat(_.values(this.mutationSampleToGenePanelData.result), _.values(this.discreteSampleToGenePanelData.result));
+            const sampleGenePanelInfo = _.concat(_.values(this.sampleToMutationnGenePanelData.result), _.values(this.sampleToDiscreteGenePanelData.result));
             const panelIds = _(sampleGenePanelInfo)
                 .map((genePanelData) => genePanelData.genePanelId)
                 .filter((genePanelId) => !noGenePanelUsed(genePanelId))
@@ -814,7 +814,7 @@ export class PatientViewPageStore {
         }
     }, {});
 
-    @computed get genePanelIdToGenes() {
+    @computed get genePanelIdToEntrezGeneIds() {
         return _(this.genePanelIdToPanel.result)
             .mapValues((genePanel) => _.map(genePanel.genes, (genePanelToGene) => genePanelToGene.entrezGeneId))
             .value();
