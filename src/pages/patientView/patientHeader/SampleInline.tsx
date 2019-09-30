@@ -5,6 +5,7 @@ import {placeArrowBottomLeft} from "public-lib/components/defaultTooltip/Default
 import { ClinicalDataBySampleId } from "shared/api/api-types-extended";
 import ClinicalInformationPatientTable from "../clinicalInformation/ClinicalInformationPatientTable";
 import './styles.scss';
+import { observable } from 'mobx';
 
 interface ISampleInlineProps {
     sample: ClinicalDataBySampleId;
@@ -12,13 +13,15 @@ interface ISampleInlineProps {
     extraTooltipText?: string;
     additionalContent?: JSX.Element|null;
     hideClinicalTable?:boolean;
+    onSelectGenePanel?:(name:string)=>void;
+    tooltipIsDisabled?:boolean;
 }
 
 export default class SampleInline extends React.Component<ISampleInlineProps, {}> {
-
     public static defaultProps = {
         tooltipEnabled: true,
-        hideClinicalInfoTable: false
+        hideClinicalInfoTable: false,
+        tooltipIsDisabled: false
     };
 
     public render() {
@@ -52,6 +55,7 @@ export default class SampleInline extends React.Component<ISampleInlineProps, {}
                     showCopyDownload={false}
                     showTitleBar={false}
                     data={sample.clinicalData}
+                    onSelectGenePanel={this.props.onSelectGenePanel}
                 />}
             </div>
         );
@@ -89,6 +93,7 @@ export default class SampleInline extends React.Component<ISampleInlineProps, {}
                 arrowContent={<div className="rc-tooltip-arrow-inner" />}
                 destroyTooltipOnHide={false}
                 onPopupAlign={placeArrowBottomLeft}
+                disabled={this.props.tooltipIsDisabled}
             >
                 {this.mainContent()}
             </DefaultTooltip>

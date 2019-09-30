@@ -55,6 +55,7 @@ import 'react-table/react-table.css';
 import getBrowserWindow from "../../public-lib/lib/getBrowserWindow";
 import { GeneFilterOption } from "./mutation/GeneFilterMenu";
 import { checkNonProfiledGenesExist } from "./PatientViewPageUtils";
+import PatientViewGenePanelModal from "./PatientViewGenePanelModal/PatientViewGenePanelModal";
 
 const patientViewPageStore = new PatientViewPageStore();
 
@@ -305,7 +306,9 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                                         {sampleManager &&
                                         sampleManager.clinicalDataLegacyCleanAndDerived[sample.id] &&
                                         getSpanElementsFromCleanData(sampleManager.clinicalDataLegacyCleanAndDerived[sample.id], patientViewPageStore.studyId)}
-                                    </span>
+                                    </span>,
+                                    patientViewPageStore.toggleModal,
+                                    patientViewPageStore.modalSettings.isOpen
                                 )
                             }
                         </span>
@@ -375,7 +378,13 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                     )
                 }
                 <div className="patientViewPage">
-
+                    <PatientViewGenePanelModal 
+                        genePanelCache={patientViewPageStore.genePanelData}
+                        show={patientViewPageStore.modalSettings.isOpen}
+                        hide={patientViewPageStore.toggleModal}
+                        panelName={patientViewPageStore.modalSettings.name}
+                        columns={3}
+                    />
                     <div className="headBlock">
 
                         {  (patientViewPageStore.patientViewData.isComplete) && (
@@ -448,6 +457,8 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                                                     containerWidth={WindowStore.size.width-20}
                                                     sampleIdToMutationGenePanelId={patientViewPageStore.sampleToMutationGenePanelId.result}
                                                     sampleIdToCopyNumberGenePanelId={patientViewPageStore.sampleToDiscreteGenePanelId.result}
+                                                    onSelectGenePanel={patientViewPageStore.toggleModal}
+                                                    tooltipIsDisabled={patientViewPageStore.modalSettings.isOpen}
                                                 />
                                                 <hr />
                                             </div>
@@ -505,6 +516,8 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                                                     columnVisibilityProps={{
                                                         onColumnToggled: this.onMutationTableColumnVisibilityToggled
                                                     }}
+                                                    onSelectGenePanel={patientViewPageStore.toggleModal}
+                                                    tooltipIsDisabled={patientViewPageStore.modalSettings.isOpen}
                                                 />
                                             </div>
                                         )
@@ -548,7 +561,9 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                                                         onColumnToggled: this.onCnaTableColumnVisibilityToggled
                                                     }}
                                                     sampleToMutationGenePanelId={patientViewPageStore.sampleToMutationGenePanelId}
-                                                    />
+                                                    onSelectGenePanel={patientViewPageStore.toggleModal}
+                                                    tooltipIsDisabled={patientViewPageStore.modalSettings.isOpen}
+                                                />
                                             </div>
                                         )
                                     }

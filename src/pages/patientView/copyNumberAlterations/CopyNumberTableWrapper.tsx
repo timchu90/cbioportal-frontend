@@ -57,6 +57,8 @@ type ICopyNumberTableWrapperProps = {
     currentGeneFilter:GeneFilterOption;
     onFilterGenes?:(option:GeneFilterOption)=>void;
     sampleToMutationGenePanelId?: {[sampleId:string]:string};
+    onSelectGenePanel?:(name:string)=>void;
+    tooltipIsDisabled?:boolean;
 };
 
 @observer
@@ -89,7 +91,7 @@ export default class CopyNumberTableWrapper extends React.Component<ICopyNumberT
         if (numSamples >= 2) {
             columns.push({
                 name: "Samples",
-                render:(d:DiscreteCopyNumberData[])=>TumorColumnFormatter.renderFunction(d, this.props.sampleManager, this.props.sampleToGenePanelId, this.props.genePanelIdToEntrezGeneIds),
+                render:(d:DiscreteCopyNumberData[])=>TumorColumnFormatter.renderFunction(d, this.props.sampleManager, this.props.sampleToGenePanelId, this.props.genePanelIdToEntrezGeneIds, this.props.onSelectGenePanel, this.props.tooltipIsDisabled),
                 sortBy:(d:DiscreteCopyNumberData[])=>TumorColumnFormatter.getSortValue(d, this.props.sampleManager),
                 download: (d:DiscreteCopyNumberData[])=>TumorColumnFormatter.getSample(d),
                 order: 20
@@ -119,7 +121,8 @@ export default class CopyNumberTableWrapper extends React.Component<ICopyNumberT
             data: d,
             sampleToGenePanelId: this.props.sampleToGenePanelId,
             sampleManager: this.props.sampleManager,
-            genePanelIdToGene: this.props.genePanelIdToEntrezGeneIds
+            genePanelIdToGene: this.props.genePanelIdToEntrezGeneIds,
+            onSelectGenePanel: this.props.onSelectGenePanel
         });
         
         columns.push({

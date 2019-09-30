@@ -8,7 +8,8 @@ interface PanelColumnFormatterProps {
 	data: {sampleId:string, entrezGeneId:number}[];
 	sampleToGenePanelId: {[sampleId: string]: string|undefined};
 	sampleManager: SampleManager|null;
-	genePanelIdToGene: {[genePanelId: string]: number[]}
+	genePanelIdToGene: {[genePanelId: string]: number[]};
+	onSelectGenePanel?: (name:string)=>void;
 }
 
 class PanelColumn extends React.Component<PanelColumnFormatterProps, {}> {
@@ -24,12 +25,10 @@ class PanelColumn extends React.Component<PanelColumnFormatterProps, {}> {
 			return <i className='fa fa-spinner fa-pulse' />;
 		}
 
-		const genePanelIds: string[] = getGenePanelIds(this.props);
-
 		return (
 			<div style={{ position: 'relative' }}>
 				<ul style={{ marginBottom: 0 }} className='list-inline list-unstyled'>
-					{genePanelIds.join(', ')}
+					{getGenePanelLinks(this.props)}
 				</ul>
 			</div>
 		);
@@ -57,6 +56,27 @@ const getGenePanelIds = (props:PanelColumnFormatterProps) => {
   return [];
 };
 
+const getGenePanelLinks = (props:PanelColumnFormatterProps) => {
+	const genePanelIds = getGenePanelIds(props);
+	const handleClick = (genePanelId:string|undefined) => {
+		if (props.onSelectGenePanel && genePanelId) {
+			props.onSelectGenePanel(genePanelId);
+		}
+	}
+	const links: (string|JSX.Element)[] = [];
+	genePanelIds.forEach((genePanel, index) => {
+		if (genePanel && genePanel !== "N/A") {
+			links.push(<a onClick={() => handleClick(genePanel)}>{genePanel}</a>)
+		} else {
+			links.push(genePanel);
+		}
+		if (index < genePanelIds.length - 1) {
+			links.push(', ');
+		}
+	});
+	return links;
+}
+
 export default {
 	renderFunction: (
 		props:PanelColumnFormatterProps
@@ -66,6 +86,7 @@ export default {
 			sampleToGenePanelId={props.sampleToGenePanelId}
 			sampleManager={props.sampleManager}
 			genePanelIdToGene={props.genePanelIdToGene}
+			onSelectGenePanel={props.onSelectGenePanel}
 		/>
 	),
 	download: (

@@ -16,7 +16,9 @@ export default class TumorColumnFormatter {
                                             mutations:T[],
                                             sampleManager:SampleManager|null,
                                             sampleToGenePanelId:{[sampleId: string]: string|undefined},
-                                            genePanelIdToGene:{[genePanelId: string]: number[]}) {
+                                            genePanelIdToGene:{[genePanelId: string]: number[]},
+                                            onSelectGenePanel?:(name:string)=>void,
+                                            tooltipIsDisabled?:boolean) {
         
         if (!sampleManager) {
             return (<span></span>);
@@ -45,13 +47,22 @@ export default class TumorColumnFormatter {
                             sampleManager.getComponentForSample( 
                                 sample.id,
                                 (mutatedSamples[sample.id]) ? 1 : 0.1,
-                                (mutatedSamples[sample.id]) ? '' : "Mutation has supporting reads, but wasn't called"
+                                (mutatedSamples[sample.id]) ? '' : "Mutation has supporting reads, but wasn't called",
+                                null,
+                                onSelectGenePanel,
+                                tooltipIsDisabled
                             )
                             :
                             <SampleInline
                                 sample={sample}
-                                extraTooltipText={'This gene was not profiled for this sample (absent from gene panel). It is unknown whether it is mutated.'} >
-                                <SampleLabelNotProfiled sample={sample}/>
+                                extraTooltipText={'This gene was not profiled for this sample (absent from gene panel). It is unknown whether it is mutated.'}
+                                onSelectGenePanel={onSelectGenePanel}
+                                tooltipIsDisabled={tooltipIsDisabled} >
+                                <SampleLabelNotProfiled
+                                    sample={sample}
+                                    onSelectGenePanel={onSelectGenePanel}
+                                    tooltipIsDisabled={tooltipIsDisabled}
+                                />
                             </SampleInline>
                         }
                     </li>

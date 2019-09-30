@@ -1,0 +1,23 @@
+#patient-view-gene-panel {
+  table {
+    width: 100%;
+    margin-top: 25px;
+    
+    thead {
+      border-bottom: 1px #e5e5e5 solid;
+    }
+    
+    td {
+      vertical-align: top;
+      padding-top: 5px;
+    }
+  }
+  
+  .input-group-sm {
+    margin-left: 5px;
+  }
+  
+  h4.panel-name {
+    margin-bottom: 15px;
+  }
+}

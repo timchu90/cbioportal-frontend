@@ -13,6 +13,7 @@ export interface IClinicalInformationPatientTableProps {
     cssClass?:string;
     showFilter?:boolean;
     showCopyDownload?:boolean;
+    onSelectGenePanel?:(name:string)=>void;
 }
 
 class PatientTable extends LazyMobXTable<IPatientRow> {}
@@ -35,6 +36,35 @@ export default class ClinicalInformationPatientTable extends React.Component<ICl
                 break;
         }
         return ret;
+    }
+    
+    handleClick = (name:string) => {
+        if (this.props.onSelectGenePanel) {
+            this.props.onSelectGenePanel(name);
+        }
+    }
+    
+    renderGenePanelLinks = (genePanels:string) => {
+        const links: (string|JSX.Element)[] = [];
+        const genePanelsArray = genePanels.split(",");
+        genePanelsArray.forEach((panelName, index) => {
+            panelName = panelName.trim();
+            if (panelName.includes("N/A")) {
+                links.push(panelName);
+            } else {
+                const splitGenePanelName = panelName.split(" ");
+                links.push(
+                    <a
+                        onClick={(e:React.MouseEvent<HTMLAnchorElement, MouseEvent>) => this.handleClick(splitGenePanelName[0])}>
+                        {panelName}
+                    </a>
+                );
+            }
+            if (index < genePanelsArray.length - 1) {
+                links.push(", ");
+            }
+        })
+        return <span>{links}</span>;
     }
 
     public render() {
@@ -60,6 +90,8 @@ export default class ClinicalInformationPatientTable extends React.Component<ICl
                           render: (data)=>{
                               if(isUrl(data.value)){
                                 return <a href={data.value} target="_blank">{data.value}</a>
+                              } else if (data.attribute === "Gene Panel") {
+                                return this.renderGenePanelLinks(data.value);
                               }
                               return <span>{this.getDisplayValue(data)}</span>
                           },
