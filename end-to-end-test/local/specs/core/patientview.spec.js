@@ -148,6 +148,27 @@ describe('patient view page', function() {
             });
 
         });
+
+        describe('gene selection filter from global config', () => {
+
+            it('reads global config and does not filter mut and cna tables when specified', () => {
+                setServerConfigAndLoadPatientView('skin_patientview_filter_genes_profiled_all_samples', false);
+                const mutGeneEntries = $$('[data-test=mutation-table-gene-column]');
+                const cnaGeneEntries = $$('div[data-test=patientview-mutation-table] tr');
+                assert.equal(mutGeneEntries.length, 4);
+                assert.equal(cnaGeneEntries.length, 3);
+            });
+            
+            it('reads global config and does filter mut and cna tables when specified', () => {
+                setServerConfigAndLoadPatientView('skin_patientview_filter_genes_profiled_all_samples', true);
+                const mutGeneEntries = $$('[data-test=mutation-table-gene-column]');
+                const cnaGeneEntries = $$('div[data-test=patientview-mutation-table] tr');
+                assert.equal(mutGeneEntries.length, 1);
+                assert.equal(cnaGeneEntries.length, 1);
+            });
+
+        });
+
     }
 });
 
@@ -167,4 +188,12 @@ function testSampleIcon(geneSymbol, tableTag, sampleIconTypes, sampleVisibilitie
         assert.equal(actualVisibility, desiredVisibility, "Gene "+geneSymbol+": icon visibility at position "+i+" is not `"+desiredVisibility+"`, but is `"+actualVisibility+"`");
     });
 
+}
+
+function setServerConfigAndLoadPatientView(paramName, paramValue) {
+    browser.execute((paramName, paramValue) => {
+        window.frontendConfig = {serverConfig: {[paramName]: paramValue}};
+    });
+    goToUrlAndSetLocalStorage(patienViewUrl);
+    waitForPatientView();
 }
