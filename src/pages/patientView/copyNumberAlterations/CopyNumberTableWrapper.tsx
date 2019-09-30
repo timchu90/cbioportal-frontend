@@ -21,6 +21,7 @@ import CopyNumberCountCache from "../clinicalInformation/CopyNumberCountCache";
 import {ICivicGeneDataWrapper, ICivicVariantDataWrapper} from "shared/model/Civic.ts";
 import HeaderIconMenu from '../mutation/HeaderIconMenu';
 import GeneFilterMenu, { GeneFilterOption } from '../mutation/GeneFilterMenu';
+import PanelColumnFormatter from "shared/components/mutationTable/column/PanelColumnFormatter";
 
 class CNATableComponent extends LazyMobXTable<DiscreteCopyNumberData[]> {
 
@@ -55,6 +56,7 @@ type ICopyNumberTableWrapperProps = {
     showGeneFilterMenu?:boolean;
     currentGeneFilter:GeneFilterOption;
     onFilterGenes?:(option:GeneFilterOption)=>void;
+    sampleToMutationGenePanelId?: {[sampleId:string]:string};
 };
 
 @observer
@@ -111,6 +113,15 @@ export default class CopyNumberTableWrapper extends React.Component<ICopyNumberT
             },
             visible: true,
             order: 30
+        });
+        
+        columns.push({
+            name: "Gene panel",
+            render: (d:DiscreteCopyNumberData[]) => PanelColumnFormatter.renderFunction(d, this.props.sampleToMutationGenePanelId),
+            download: (d:DiscreteCopyNumberData[]) => PanelColumnFormatter.download(d, this.props.sampleToMutationGenePanelId),
+            sortBy: (d:DiscreteCopyNumberData[]) => PanelColumnFormatter.getGenePanelIds(d, this.props.sampleToMutationGenePanelId),
+            visible: false,
+            order: 35
         });
 
         columns.push({

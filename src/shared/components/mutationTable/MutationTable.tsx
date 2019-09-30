@@ -95,6 +95,7 @@ export interface IMutationTableProps {
     showCountHeader?:boolean;
     columnVisibility?: {[columnId: string]: boolean};
     columnVisibilityProps?: IColumnVisibilityControlsProps;
+    sampleToMutationGenePanelId?: {[sampleId:string]: string};
 }
 
 export enum MutationTableColumnType {
@@ -130,7 +131,8 @@ export enum MutationTableColumnType {
     HGVSC,
     GNOMAD,
     CLINVAR,
-    DBSNP
+    DBSNP,
+    GENE_PANEL
 }
 
 type MutationTableColumn = Column<Mutation[]>&{order?:number, shouldExclude?:()=>boolean};

@@ -9,6 +9,7 @@ import {Mutation} from "shared/api/generated/CBioPortalAPI";
 import AlleleCountColumnFormatter from "shared/components/mutationTable/column/AlleleCountColumnFormatter";
 import AlleleFreqColumnFormatter from "./column/AlleleFreqColumnFormatter";
 import TumorColumnFormatter from "./column/TumorColumnFormatter";
+import PanelColumnFormatter from "shared/components/mutationTable/column/PanelColumnFormatter";
 import {isUncalled} from "shared/lib/MutationUtils";
 import TumorAlleleFreqColumnFormatter from "shared/components/mutationTable/column/TumorAlleleFreqColumnFormatter";
 import ExonColumnFormatter from "shared/components/mutationTable/column/ExonColumnFormatter";
@@ -66,7 +67,8 @@ export default class PatientViewMutationTable extends MutationTable<IPatientView
             MutationTableColumnType.HGVSC,
             MutationTableColumnType.GNOMAD,
             MutationTableColumnType.CLINVAR,
-            MutationTableColumnType.DBSNP
+            MutationTableColumnType.DBSNP,
+            MutationTableColumnType.GENE_PANEL
         ]
     };
 
@@ -98,6 +100,14 @@ export default class PatientViewMutationTable extends MutationTable<IPatientView
             sortBy:(d:Mutation[])=>TumorColumnFormatter.getSortValue(d, this.props.sampleManager),
             download: (d:Mutation[])=>TumorColumnFormatter.getSample(d),
         };
+        
+        this._columns[MutationTableColumnType.GENE_PANEL] = {
+            name: "Gene panel",
+            render: (d:Mutation[]) => PanelColumnFormatter.renderFunction(d, this.props.sampleToMutationGenePanelId),
+            download: (d:Mutation[]) => PanelColumnFormatter.download(d, this.props.sampleToMutationGenePanelId),
+            visible: false,
+            sortBy: (d:Mutation[]) => PanelColumnFormatter.getGenePanelIds(d, this.props.sampleToMutationGenePanelId)
+        }
 
         // customization for allele count columns
 
@@ -136,6 +146,7 @@ export default class PatientViewMutationTable extends MutationTable<IPatientView
         // order columns
         this._columns[MutationTableColumnType.SAMPLES].order = 5;
         this._columns[MutationTableColumnType.GENE].order = 20;
+        this._columns[MutationTableColumnType.GENE_PANEL].order = 25;
         this._columns[MutationTableColumnType.PROTEIN_CHANGE].order = 30;
         this._columns[MutationTableColumnType.ANNOTATION].order = 35;
         this._columns[MutationTableColumnType.FUNCTIONAL_IMPACT].order = 38;
