@@ -3,6 +3,7 @@ import DefaultTooltip from 'public-lib/components/defaultTooltip/DefaultTooltip'
 import 'rc-tooltip/assets/bootstrap_white.css';
 import {VAFPlot, IVAFPlotProps, MutationFrequenciesBySample} from './VAFPlot';
 import Tooltip, {RCTooltip} from "rc-tooltip";
+import { IKeyedIconData } from '../genomicOverview/GenomicOverviewUtils';
 
 export type IThumbnailExpandVAFPlotProps = {
     data: MutationFrequenciesBySample;
@@ -11,6 +12,7 @@ export type IThumbnailExpandVAFPlotProps = {
     labels?: { [s:string]:string };
     overlayPlacement?: RCTooltip.Placement;
     cssClass?: string;
+    genePanelIconData?:IKeyedIconData;
 };
 
 export class ThumbnailExpandVAFPlot extends React.Component<IThumbnailExpandVAFPlotProps, {}> {
@@ -21,10 +23,6 @@ export class ThumbnailExpandVAFPlot extends React.Component<IThumbnailExpandVAFP
         labels: {},
         overlayPlacement: "left",
     };
-
-    shouldComponentUpdate() {
-        return false;
-    }
 
     render() {
         let thumbnailProps = {
@@ -49,6 +47,7 @@ export class ThumbnailExpandVAFPlot extends React.Component<IThumbnailExpandVAFP
             nolegend: false,
             init_show_histogram: true,
             init_show_curve: true,
+            genepanel_icon_data: this.props.genePanelIconData
         };
 
         return (
