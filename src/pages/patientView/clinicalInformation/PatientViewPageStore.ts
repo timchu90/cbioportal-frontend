@@ -779,9 +779,14 @@ export class PatientViewPageStore {
         }
     }, {});
 
-    @computed get sampleToMutationGenePanelId() {
-        return _.mapValues(this.sampleToMutationGenePanelData.result, (genePanelData) => genePanelData.genePanelId);
-    }
+    readonly sampleToMutationGenePanelId = remoteData<{[sampleId: string]: string}>({
+        await:()=>[
+            this.sampleToMutationGenePanelData
+        ],
+        invoke: async() => {
+            return _.mapValues(this.sampleToMutationGenePanelData.result, (genePanelData) => genePanelData.genePanelId);
+        }
+    }, {});
 
     readonly sampleToDiscreteGenePanelData = remoteData<{[sampleId: string]: GenePanelData}>({
         await:()=>[
@@ -795,9 +800,14 @@ export class PatientViewPageStore {
         }
     }, {});
 
-    @computed get sampleToDiscreteGenePanelId() {
-        return _.mapValues(this.sampleToDiscreteGenePanelData.result, (genePanelData) => genePanelData.genePanelId);
-    }
+    readonly sampleToDiscreteGenePanelId = remoteData<{[sampleId: string]: string}>({
+        await:()=>[
+            this.sampleToDiscreteGenePanelData
+        ],
+        invoke: async() => {
+            return _.mapValues(this.sampleToDiscreteGenePanelData.result, (genePanelData) => genePanelData.genePanelId);
+        }
+    }, {});
 
     readonly genePanelIdToPanel = remoteData<{[genePanelId: string]: GenePanel}>({
         await:()=>[
@@ -814,11 +824,16 @@ export class PatientViewPageStore {
         }
     }, {});
 
-    @computed get genePanelIdToEntrezGeneIds() {
-        return _(this.genePanelIdToPanel.result)
+    readonly genePanelIdToEntrezGeneIds = remoteData<{[genePanelId: string]: number[]}>({
+        await:()=>[
+            this.genePanelIdToPanel
+        ],
+        invoke: async() => {
+            return _(this.genePanelIdToPanel.result)
             .mapValues((genePanel) => _.map(genePanel.genes, (genePanelToGene) => genePanelToGene.entrezGeneId))
             .value();
-    }
+        }
+    }, {});
 
     @computed get mergedMutationData(): Mutation[][] {
         return mergeMutations(this.mutationData);
