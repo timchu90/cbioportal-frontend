@@ -69,16 +69,16 @@ export const ONCOKB_DEFAULT: IOncoKbData = {
     indicatorMap : {}
 };
 
-export const CompleteProfileTypeSignature = {
+export const GenePanelIdSpecialValue = {
     UNKNOWN: undefined,
     WHOLE_EXOME_SEQ: 'WES',
     WHOLE_GENOME_SEQ: 'WGS'
 };
 
 export function noGenePanelUsed(genePanelId:string|undefined):boolean {
-    return genePanelId === CompleteProfileTypeSignature.UNKNOWN
-        || genePanelId === CompleteProfileTypeSignature.WHOLE_EXOME_SEQ
-        || genePanelId === CompleteProfileTypeSignature.WHOLE_GENOME_SEQ;
+    return genePanelId === GenePanelIdSpecialValue.UNKNOWN
+        || genePanelId === GenePanelIdSpecialValue.WHOLE_EXOME_SEQ
+        || genePanelId === GenePanelIdSpecialValue.WHOLE_GENOME_SEQ;
 }
 
 export type MutationIdGenerator = (mutation:Mutation) => string;
