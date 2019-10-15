@@ -101,12 +101,19 @@ export default class PatientViewMutationTable extends MutationTable<IPatientView
             download: (d:Mutation[])=>TumorColumnFormatter.getSample(d),
         };
         
+        const GenePanelProps = (d:Mutation[]) => ({
+            data: d,
+            sampleToGenePanelId: this.props.sampleToGenePanelId,
+            sampleManager: this.props.sampleManager,
+            genePanelIdToGene: this.props.genePanelIdToEntrezGeneIds
+        });
+        
         this._columns[MutationTableColumnType.GENE_PANEL] = {
             name: "Gene panel",
-            render: (d:Mutation[]) => PanelColumnFormatter.renderFunction(d, this.props.sampleToMutationGenePanelId),
-            download: (d:Mutation[]) => PanelColumnFormatter.download(d, this.props.sampleToMutationGenePanelId),
+            render: (d:Mutation[]) => PanelColumnFormatter.renderFunction(GenePanelProps(d)),
+            download: (d:Mutation[]) => PanelColumnFormatter.download(GenePanelProps(d)),
             visible: false,
-            sortBy: (d:Mutation[]) => PanelColumnFormatter.getGenePanelIds(d, this.props.sampleToMutationGenePanelId)
+            sortBy: (d:Mutation[]) => PanelColumnFormatter.getGenePanelIds(GenePanelProps(d))
         }
 
         // customization for allele count columns

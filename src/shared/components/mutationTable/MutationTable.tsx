@@ -95,7 +95,6 @@ export interface IMutationTableProps {
     showCountHeader?:boolean;
     columnVisibility?: {[columnId: string]: boolean};
     columnVisibilityProps?: IColumnVisibilityControlsProps;
-    sampleToMutationGenePanelId?: {[sampleId:string]: string};
 }
 
 export enum MutationTableColumnType {

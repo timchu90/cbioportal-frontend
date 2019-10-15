@@ -1,6 +1,7 @@
-import PanelColumnFormatter from "./PanelColumnFormatter";
-import { shallow } from "enzyme";
+import PanelColumnFormatter from './PanelColumnFormatter';
+import { shallow } from 'enzyme';
 import { assert } from 'chai';
+import SampleManager from 'pages/patientView/SampleManager';
 
 const mockData = [
   {
@@ -21,29 +22,39 @@ const mockData = [
   }
 ];
 
-const mockSampleToMutationGenePanelId = { 'sampleId': 'genePanelId' };
+const mockSamples = [
+  { id: 'sampleId', clinicalData: [] }
+]
 
-describe("PanelColumnFormatter", () => {
-  it('renders spinner icon if sampleToMutationGenePanelId object is empty', () => {
-    const PanelColumn = shallow(PanelColumnFormatter.renderFunction(mockData, {}));
+const mockSampleToGenePanelId = { 'sampleId': 'genePanelId' };
+const mockGenePanelIdToGene = { 'genePanelId': [1] };
+const mockSampleManager = new SampleManager(mockSamples);
+
+const mock = {
+  data: mockData,
+  sampleToGenePanelId: mockSampleToGenePanelId,
+  sampleManager: mockSampleManager,
+  genePanelIdToGene: mockGenePanelIdToGene
+}
+
+describe('PanelColumnFormatter', () => {
+  it('renders spinner icon if sampleToGenePanelId object is empty', () => {
+    const PanelColumn = shallow(PanelColumnFormatter.renderFunction({...mock, sampleToGenePanelId: {}}));
     assert.isTrue(PanelColumn.find('i.fa-spinner').exists());
   });
   
   it('renders gene panel information', () => {
-    const PanelColumn = shallow(PanelColumnFormatter.renderFunction(
-      mockData,
-      mockSampleToMutationGenePanelId
-    ));
+    const PanelColumn = shallow(PanelColumnFormatter.renderFunction(mock));
     assert.isTrue(PanelColumn.text().includes('genePanelId'));
   });
   
   it('returns a list of gene panel ids on download', () => {
-    const genePanelIds = PanelColumnFormatter.download(mockData, mockSampleToMutationGenePanelId);
+    const genePanelIds = PanelColumnFormatter.download(mock);
     assert.deepEqual(genePanelIds, ['genePanelId'])
   });
   
   it('returns a list of gene panel ids on getGenePanelIds', () => {
-    const genePanelIds = PanelColumnFormatter.getGenePanelIds(mockData, mockSampleToMutationGenePanelId);
+    const genePanelIds = PanelColumnFormatter.getGenePanelIds(mock);
     assert.deepEqual(genePanelIds, ['genePanelId'])
-  })
+  });
 })

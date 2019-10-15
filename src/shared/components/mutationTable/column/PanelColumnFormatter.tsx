@@ -1,12 +1,14 @@
 import * as React from 'react';
-import {
-	Mutation,
-	DiscreteCopyNumberData
-} from 'shared/api/generated/CBioPortalAPI';
+import {map} from 'lodash';
+import SampleManager from 'pages/patientView/SampleManager';
+import { ClinicalDataBySampleId } from 'shared/api/api-types-extended';
+import TumorColumnFormatter from 'pages/patientView/mutation/column/TumorColumnFormatter';
 
 interface PanelColumnFormatterProps {
-	data: Mutation[] | DiscreteCopyNumberData[];
-	sampleToMutationGenePanelId: {[sampleId:string]: string} | undefined;
+	data: {sampleId:string, entrezGeneId:number}[];
+	sampleToGenePanelId: {[sampleId: string]: string|undefined};
+	sampleManager: SampleManager|null;
+	genePanelIdToGene: {[genePanelId: string]: number[]}
 }
 
 class PanelColumn extends React.Component<PanelColumnFormatterProps, {}> {
@@ -15,18 +17,14 @@ class PanelColumn extends React.Component<PanelColumnFormatterProps, {}> {
 	}
 
 	render() {
-    const { data, sampleToMutationGenePanelId } = this.props;
-    
-    if (!sampleToMutationGenePanelId) return;
+		const { sampleToGenePanelId, sampleManager } = this.props;
+    if (!sampleToGenePanelId || !sampleManager) return;
 
-		if (sampleToMutationGenePanelId && !Object.keys(sampleToMutationGenePanelId).length) {
+		if (sampleToGenePanelId && !Object.keys(sampleToGenePanelId).length) {
 			return <i className='fa fa-spinner fa-pulse' />;
 		}
 
-		const genePanelIds: string[] = getGenePanelIds(
-			data,
-			sampleToMutationGenePanelId
-		);
+		const genePanelIds: string[] = getGenePanelIds(this.props);
 
 		return (
 			<div style={{ position: 'relative' }}>
@@ -38,30 +36,39 @@ class PanelColumn extends React.Component<PanelColumnFormatterProps, {}> {
 	}
 }
 
-const getGenePanelIds = (
-	data: any[],
-	sampleToMutationGenePanelId: {[sampleId:string]: string} | undefined
-) => {
-  if (sampleToMutationGenePanelId) {
-    const sampleIds = data.map((datum) => datum.sampleId);
-    return sampleIds.map((id) => sampleToMutationGenePanelId[id]);
+const getGenePanelIds = (props:PanelColumnFormatterProps) => {
+	const { data, sampleToGenePanelId, sampleManager, genePanelIdToGene } = props;
+  if (sampleToGenePanelId && sampleManager) {
+		const samples =  sampleManager.samples;
+		const sampleIds = map(samples, (sample:ClinicalDataBySampleId) => sample.id)
+		const entrezGeneId = data[0].entrezGeneId;
+		const mutatedSamples = TumorColumnFormatter.getPresentSamples(data);
+		const profiledSamples = TumorColumnFormatter.getProfiledSamplesForGene(entrezGeneId, sampleIds, sampleToGenePanelId, genePanelIdToGene);
+		
+		const genePanelsIds = samples.map(sample => {
+			const isMutated = sample.id in mutatedSamples;
+			const isProfiled = sample.id in profiledSamples && profiledSamples[sample.id];
+			if (isProfiled && !isMutated) return "";
+			return sampleToGenePanelId[sample.id] || "N/A";
+		});
+		
+		return genePanelsIds.filter(id => id);
   }
   return [];
 };
 
 export default {
 	renderFunction: (
-		data: Mutation[] | DiscreteCopyNumberData[],
-		sampleToMutationGenePanelId: {[sampleId:string]: string} | undefined
+		props:PanelColumnFormatterProps
 	) => (
 		<PanelColumn
-			data={data}
-			sampleToMutationGenePanelId={sampleToMutationGenePanelId}
+			data={props.data}
+			sampleToGenePanelId={props.sampleToGenePanelId}
+			sampleManager={props.sampleManager}
+			genePanelIdToGene={props.genePanelIdToGene}
 		/>
 	),
 	download: (
-		data: Mutation[] | DiscreteCopyNumberData[],
-		sampleToMutationGenePanelId: {[sampleId:string]: string} | undefined
-	) => getGenePanelIds(data, sampleToMutationGenePanelId),
+		props:PanelColumnFormatterProps) => getGenePanelIds(props),
 	getGenePanelIds
 };

@@ -115,11 +115,18 @@ export default class CopyNumberTableWrapper extends React.Component<ICopyNumberT
             order: 30
         });
         
+        const GenePanelProps = (d:DiscreteCopyNumberData[]) => ({
+            data: d,
+            sampleToGenePanelId: this.props.sampleToGenePanelId,
+            sampleManager: this.props.sampleManager,
+            genePanelIdToGene: this.props.genePanelIdToEntrezGeneIds
+        });
+        
         columns.push({
             name: "Gene panel",
-            render: (d:DiscreteCopyNumberData[]) => PanelColumnFormatter.renderFunction(d, this.props.sampleToMutationGenePanelId),
-            download: (d:DiscreteCopyNumberData[]) => PanelColumnFormatter.download(d, this.props.sampleToMutationGenePanelId),
-            sortBy: (d:DiscreteCopyNumberData[]) => PanelColumnFormatter.getGenePanelIds(d, this.props.sampleToMutationGenePanelId),
+            render: (d:DiscreteCopyNumberData[]) => PanelColumnFormatter.renderFunction(GenePanelProps(d)),
+            download: (d:DiscreteCopyNumberData[]) => PanelColumnFormatter.download(GenePanelProps(d)),
+            sortBy: (d:DiscreteCopyNumberData[]) => PanelColumnFormatter.getGenePanelIds(GenePanelProps(d)),
             visible: false,
             order: 35
         });
