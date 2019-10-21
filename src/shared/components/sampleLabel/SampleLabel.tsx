@@ -36,7 +36,7 @@ export class SampleLabelHTML extends React.Component<ISampleLabelHTMLProps, {}> 
             <svg width='12' height='12' className='case-label-header'>
                 <g transform='translate(6,6)'>
                     <circle r='6' fill={color} fillOpacity={fillOpacity} />
-                    <text y='4' textAnchor='middle' fontSize='10' fill='white'>{label}</text>
+                    <text y='4' textAnchor='middle' fontSize='10' fill='white' style={{cursor:"default"}} >{label}</text>
                 </g>
             </svg>
         );
