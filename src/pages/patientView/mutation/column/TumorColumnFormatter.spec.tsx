@@ -4,6 +4,8 @@ import { assert } from 'chai';
 import { shallow, mount } from 'enzyme';
 import sinon from 'sinon';
 import {MOLECULAR_PROFILE_MUTATIONS_SUFFIX, MOLECULAR_PROFILE_UNCALLED_MUTATIONS_SUFFIX} from '../../../../shared/constants';
+import { ClinicalDataBySampleId } from 'shared/api/api-types-extended';
+import { CompleteProfileTypeSignature } from 'shared/lib/StoreUtils';
 
 describe('TumorColumnFormatter', () => {
     let testData = [
@@ -37,6 +39,68 @@ describe('TumorColumnFormatter', () => {
 
     it('test get sample ids', ()=>{
         assert.deepEqual(TumorColumnFormatter.getSample(testData), ["A", "B", "C"]);
+    });
+
+    describe('getProfiledSamplesForGene', () => {
+
+        const sampleToGenePanelId = {
+            sampleA: 'panel1',
+            sampleB: 'panel2',
+            sampleC: CompleteProfileTypeSignature.UNKNOWN,
+            sampleD: CompleteProfileTypeSignature.WHOLE_EXOME_SEQ,
+            sampleE: CompleteProfileTypeSignature.WHOLE_GENOME_SEQ
+        } as {[sampleId: string]: string|undefined};
+
+        const genePanelIdToGene = {
+            panel1: [1, 2, 3],
+            panel2: [3, 4, 5],
+        } as {[genePanelId: string]: number[]};
+
+        it('excludes samples where gene-of-interest is not in gene panel', () => {
+            const entrezId = 1;
+            const samples = [
+                {id: 'sampleA', clinicalData: []},
+                {id: 'sampleB', clinicalData: []}
+            ] as ClinicalDataBySampleId[];
+            const profiledSamples = TumorColumnFormatter.getProfiledSamplesForGene(entrezId, samples, sampleToGenePanelId, genePanelIdToGene);
+            const correct = {
+                sampleA: true,
+                sampleB: false
+            };
+            assert.deepEqual(profiledSamples, correct);
+        });
+
+        it('includes samples where gene-of-interest is analyzed with different gene panels', () => {
+            const entrezId = 3;
+            const samples = [
+                {id: 'sampleA', clinicalData: []},
+                {id: 'sampleB', clinicalData: []}
+            ] as ClinicalDataBySampleId[];
+            const profiledSamples = TumorColumnFormatter.getProfiledSamplesForGene(entrezId, samples, sampleToGenePanelId, genePanelIdToGene);
+            const correct = {
+                sampleA: true,
+                sampleB: true
+            };
+            assert.deepEqual(profiledSamples, correct);
+        });
+
+        it('always includes samples that were whole genome/exome profiled', () => {
+            const entrezId = 1;
+            const samples = [
+                {id: 'sampleA', clinicalData: []},
+                {id: 'sampleC', clinicalData: []},
+                {id: 'sampleD', clinicalData: []},
+                {id: 'sampleE', clinicalData: []}
+            ] as ClinicalDataBySampleId[];
+            const profiledSamples = TumorColumnFormatter.getProfiledSamplesForGene(entrezId, samples, sampleToGenePanelId, genePanelIdToGene);
+            const correct = {
+                sampleA: true,
+                sampleC: true,
+                sampleD: true,
+                sampleE: true,
+            };
+            assert.deepEqual(profiledSamples, correct);
+        });
     });
 
 });
