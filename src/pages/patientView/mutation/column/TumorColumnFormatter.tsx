@@ -6,7 +6,6 @@ import _ from 'lodash';
 import { ClinicalDataBySampleId } from 'shared/api/api-types-extended';
 import { noGenePanelUsed } from "shared/lib/StoreUtils";
 import SampleInline from 'pages/patientView/patientHeader/SampleInline';
-import { SampleLabelNotProfiledNumbered } from 'shared/components/sampleLabel/SampleLabelNotProfiledNumbered';
 import SampleLabelNotProfiled from 'shared/components/sampleLabel/SampleLabelNotProfiled';
 
 export default class TumorColumnFormatter {

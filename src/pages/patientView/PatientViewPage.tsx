@@ -424,8 +424,8 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                                                 <PatientViewMutationTable
                                                     studyIdToStudy={patientViewPageStore.studyIdToStudy.result}
                                                     sampleManager={sampleManager}
-                                                    sampleToGenePanelId={patientViewPageStore.sampleToMutationGenePanelId}
-                                                    genePanelIdToEntrezGeneIds={patientViewPageStore.genePanelIdToEntrezGeneIds}
+                                                    sampleToGenePanelId={patientViewPageStore.sampleToMutationGenePanelId.result}
+                                                    genePanelIdToEntrezGeneIds={patientViewPageStore.genePanelIdToEntrezGeneIds.result}
                                                     sampleIds={sampleManager ? sampleManager.getSampleIdsInOrder() : []}
                                                     uniqueSampleKeyToTumorType={patientViewPageStore.uniqueSampleKeyToTumorType}
                                                     molecularProfileIdToMolecularProfile={patientViewPageStore.molecularProfileIdToMolecularProfile.result}
@@ -476,8 +476,8 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                                                     studyIdToStudy={patientViewPageStore.studyIdToStudy.result}
                                                     sampleIds={sampleManager ? sampleManager.getSampleIdsInOrder() : []}
                                                     sampleManager={sampleManager}
-                                                    sampleToGenePanelId={patientViewPageStore.sampleToDiscreteGenePanelId}
-                                                    genePanelIdToEntrezGeneIds={patientViewPageStore.genePanelIdToEntrezGeneIds}
+                                                    sampleToGenePanelId={patientViewPageStore.sampleToDiscreteGenePanelId.result}
+                                                    genePanelIdToEntrezGeneIds={patientViewPageStore.genePanelIdToEntrezGeneIds.result}
                                                     cnaOncoKbData={patientViewPageStore.cnaOncoKbData}
                                                     cnaCivicGenes={patientViewPageStore.cnaCivicGenes}
                                                     cnaCivicVariants={patientViewPageStore.cnaCivicVariants}

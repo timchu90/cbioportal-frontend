@@ -1,11 +1,8 @@
 import TumorColumnFormatter from './TumorColumnFormatter';
-import React from 'react';
 import { assert } from 'chai';
-import { shallow, mount } from 'enzyme';
-import sinon from 'sinon';
 import {MOLECULAR_PROFILE_MUTATIONS_SUFFIX, MOLECULAR_PROFILE_UNCALLED_MUTATIONS_SUFFIX} from '../../../../shared/constants';
 import { ClinicalDataBySampleId } from 'shared/api/api-types-extended';
-import { CompleteProfileTypeSignature } from 'shared/lib/StoreUtils';
+import { GenePanelIdSpecialValue } from 'shared/lib/StoreUtils';
 
 describe('TumorColumnFormatter', () => {
     let testData = [
@@ -46,9 +43,9 @@ describe('TumorColumnFormatter', () => {
         const sampleToGenePanelId = {
             sampleA: 'panel1',
             sampleB: 'panel2',
-            sampleC: CompleteProfileTypeSignature.UNKNOWN,
-            sampleD: CompleteProfileTypeSignature.WHOLE_EXOME_SEQ,
-            sampleE: CompleteProfileTypeSignature.WHOLE_GENOME_SEQ
+            sampleC: GenePanelIdSpecialValue.UNKNOWN,
+            sampleD: GenePanelIdSpecialValue.WHOLE_EXOME_SEQ,
+            sampleE: GenePanelIdSpecialValue.WHOLE_GENOME_SEQ
         } as {[sampleId: string]: string|undefined};
 
         const genePanelIdToGene = {
