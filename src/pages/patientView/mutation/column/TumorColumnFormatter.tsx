@@ -7,6 +7,7 @@ import { ClinicalDataBySampleId } from 'shared/api/api-types-extended';
 import { noGenePanelUsed } from "shared/lib/StoreUtils";
 import SampleInline from 'pages/patientView/patientHeader/SampleInline';
 import { SampleLabelNotProfiledNumbered } from 'shared/components/sampleLabel/SampleLabelNotProfiledNumbered';
+import SampleLabelNotProfiled from 'shared/components/sampleLabel/SampleLabelNotProfiled';
 
 export default class TumorColumnFormatter {
     
@@ -50,9 +51,7 @@ export default class TumorColumnFormatter {
                             <SampleInline
                                 sample={sample}
                                 extraTooltipText={'This gene was not profiled for this sample (absent from gene panel). It is unknown whether it is mutated.'} >
-                                <SampleLabelNotProfiledNumbered
-                                    label={sampleManager.getSampleLabel(sample.id)}
-                                />
+                                <SampleLabelNotProfiled sample={sample}/>
                             </SampleInline>
                         }
                     </li>
