@@ -190,6 +190,13 @@ class SampleManager {
     getComponentsForSamples() {
         this.samples.map((sample)=>this.getComponentForSample(sample.id));
     }
+
+    getSampleLabel(sampleId:string):string {
+        if (sampleId in this.sampleLabels) {
+            return this.sampleLabels[sampleId];
+        }
+        return "";
+    }
 }
 
 export default SampleManager;

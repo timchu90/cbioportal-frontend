@@ -5,7 +5,8 @@ import {isUncalled} from 'shared/lib/MutationUtils';
 import _ from 'lodash';
 import { ClinicalDataBySampleId } from 'shared/api/api-types-extended';
 import { noGenePanelUsed } from "shared/lib/StoreUtils";
-import SampleLabelNotProfiled from 'shared/components/sampleLabel/SampleLabelNotProfiled';
+import SampleInline from 'pages/patientView/patientHeader/SampleInline';
+import { SampleLabelNotProfiledNumbered } from 'shared/components/sampleLabel/SampleLabelNotProfiledNumbered';
 
 export default class TumorColumnFormatter {
     
@@ -36,6 +37,7 @@ export default class TumorColumnFormatter {
                 // show not-profiled icon when gene was not analyzed
                 const isMutated = sample.id in mutatedSamples;
                 const isProfiled = sample.id in profiledSamples && profiledSamples[sample.id];
+                
                 return (
                     <li className={isProfiled && !isMutated? 'invisible' : ''}>
                         {isProfiled?
@@ -45,7 +47,13 @@ export default class TumorColumnFormatter {
                                 (mutatedSamples[sample.id]) ? '' : "Mutation has supporting reads, but wasn't called"
                             )
                             :
-                            <SampleLabelNotProfiled sample={sample}></SampleLabelNotProfiled>
+                            <SampleInline
+                                sample={sample}
+                                extraTooltipText={'This gene was not profiled for this sample (absent from gene panel). It is unknown whether it is mutated.'} >
+                                <SampleLabelNotProfiledNumbered
+                                    label={sampleManager.getSampleLabel(sample.id)}
+                                />
+                            </SampleInline>
                         }
                     </li>
                 );
