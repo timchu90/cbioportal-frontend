@@ -27,9 +27,10 @@ export default class TumorColumnFormatter {
         // - when sample->gene has no mutation (absent from _mutatedSamples_) and was profiled, show `no mutation` icon
         // - when sample->gene has no mutation (absent from _mutatedSamples_) and was not profiled, show `not profiled` icon
         const samples =  sampleManager.samples;
+        const sampleIds = _.map(samples, (sample:ClinicalDataBySampleId) => sample.id)
         const entrezGeneId = mutations[0].entrezGeneId;
         const mutatedSamples = TumorColumnFormatter.getPresentSamples(mutations);
-        const profiledSamples = TumorColumnFormatter.getProfiledSamplesForGene(entrezGeneId, samples, sampleToGenePanelId, genePanelIdToGene);
+        const profiledSamples = TumorColumnFormatter.getProfiledSamplesForGene(entrezGeneId, sampleIds, sampleToGenePanelId, genePanelIdToGene);
 
         const tdValue = samples.map((sample:any) => {
                 // hide labels for non-existent mutation data
@@ -96,18 +97,18 @@ export default class TumorColumnFormatter {
         }, {} as {[s:string]:boolean});
     }
 
-    public static getProfiledSamplesForGene(entrezGeneId:number, samples:ClinicalDataBySampleId[], sampleToGenePanelId:{[sampleId: string]: string|undefined}, genePanelIdToEntrezGeneIds:{[genePanelId: string]: number[]}) {
+    public static getProfiledSamplesForGene(entrezGeneId:number, sampleIds:string[], sampleToGenePanelId:{[sampleId: string]: string|undefined}, genePanelIdToEntrezGeneIds:{[genePanelId: string]: number[]}) {
         // For a given gene indicate whether it was profiled in a particular sample
-        return samples.reduce((sampleIsProfiled, nextSample, currentIndex:number) => {
-            const genePanelId = sampleToGenePanelId[nextSample.id];
+        return sampleIds.reduce((sampleIsProfiled, nextSampleId, currentIndex:number) => {
+            const genePanelId = sampleToGenePanelId[nextSampleId];
             
             const wholeGenome = noGenePanelUsed(genePanelId);
             const isInGenePanel = !wholeGenome && genePanelId && genePanelId in genePanelIdToEntrezGeneIds && genePanelIdToEntrezGeneIds[genePanelId].includes(entrezGeneId);
 
             if (wholeGenome || isInGenePanel) {
-                sampleIsProfiled[nextSample.id] = true;
+                sampleIsProfiled[nextSampleId] = true;
             } else {
-                sampleIsProfiled[nextSample.id] = false;
+                sampleIsProfiled[nextSampleId] = false;
             }
             return sampleIsProfiled;
         }, {} as {[s:string]:boolean});

@@ -55,11 +55,11 @@ describe('TumorColumnFormatter', () => {
 
         it('excludes samples where gene-of-interest is not in gene panel', () => {
             const entrezId = 1;
-            const samples = [
-                {id: 'sampleA', clinicalData: []},
-                {id: 'sampleB', clinicalData: []}
-            ] as ClinicalDataBySampleId[];
-            const profiledSamples = TumorColumnFormatter.getProfiledSamplesForGene(entrezId, samples, sampleToGenePanelId, genePanelIdToGene);
+            const sampleIds = [
+                'sampleA',
+                'sampleB'
+            ];
+            const profiledSamples = TumorColumnFormatter.getProfiledSamplesForGene(entrezId, sampleIds, sampleToGenePanelId, genePanelIdToGene);
             const correct = {
                 sampleA: true,
                 sampleB: false
@@ -69,11 +69,11 @@ describe('TumorColumnFormatter', () => {
 
         it('includes samples where gene-of-interest is analyzed with different gene panels', () => {
             const entrezId = 3;
-            const samples = [
-                {id: 'sampleA', clinicalData: []},
-                {id: 'sampleB', clinicalData: []}
-            ] as ClinicalDataBySampleId[];
-            const profiledSamples = TumorColumnFormatter.getProfiledSamplesForGene(entrezId, samples, sampleToGenePanelId, genePanelIdToGene);
+            const sampleIds = [
+                'sampleA',
+                'sampleB'
+            ];
+            const profiledSamples = TumorColumnFormatter.getProfiledSamplesForGene(entrezId, sampleIds, sampleToGenePanelId, genePanelIdToGene);
             const correct = {
                 sampleA: true,
                 sampleB: true
@@ -83,13 +83,13 @@ describe('TumorColumnFormatter', () => {
 
         it('always includes samples that were whole genome/exome profiled', () => {
             const entrezId = 1;
-            const samples = [
-                {id: 'sampleA', clinicalData: []},
-                {id: 'sampleC', clinicalData: []},
-                {id: 'sampleD', clinicalData: []},
-                {id: 'sampleE', clinicalData: []}
-            ] as ClinicalDataBySampleId[];
-            const profiledSamples = TumorColumnFormatter.getProfiledSamplesForGene(entrezId, samples, sampleToGenePanelId, genePanelIdToGene);
+            const sampleIds = [
+                'sampleA',
+                'sampleC',
+                'sampleD',
+                'sampleE'
+            ];
+            const profiledSamples = TumorColumnFormatter.getProfiledSamplesForGene(entrezId, sampleIds, sampleToGenePanelId, genePanelIdToGene);
             const correct = {
                 sampleA: true,
                 sampleC: true,
