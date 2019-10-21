@@ -39,7 +39,7 @@ export default class TumorColumnFormatter {
                 return (
                     <li className={isProfiled && !isMutated? 'invisible' : ''}>
                         {isProfiled?
-                            sampleManager.getComponentForSample(
+                            sampleManager.getComponentForSample( 
                                 sample.id,
                                 (mutatedSamples[sample.id]) ? 1 : 0.1,
                                 (mutatedSamples[sample.id]) ? '' : "Mutation has supporting reads, but wasn't called"
@@ -52,7 +52,7 @@ export default class TumorColumnFormatter {
         });
 
         return (
-                <div style={{position:'relative'}}>
+                <div style={{position:'relative'}} data-test="samples-cell">
                     <ul  style={{marginBottom:0}} className="list-inline list-unstyled">{ tdValue }</ul>
                 </div>
         );
