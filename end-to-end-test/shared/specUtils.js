@@ -19,7 +19,7 @@ function waitForCoExpressionTab(timeout) {
 }
 
 function waitForPatientView(timeout) {
-    $('//*[@id="patientViewPageTabs"]').waitForExist(timeout || 20000);
+    $('#patientViewPageTabs').waitForExist(timeout || 20000);
     waitForNetworkQuiet();
 }
 
