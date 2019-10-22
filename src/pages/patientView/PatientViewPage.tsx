@@ -431,11 +431,11 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                                     {
                                         (patientViewPageStore.mutationData.isComplete && patientViewPageStore.cnaSegments.isComplete
                                             && patientViewPageStore.sequencedSampleIdsInStudy.isComplete && sampleManager)
-                                        && ( patientViewPageStore.mutationData.result.length > 0 || patientViewPageStore.cnaSegments.result.length > 0)
+                                        && ( patientViewPageStore.mergedMutationDataFilteredByGene.length > 0 || patientViewPageStore.cnaSegments.result.length > 0)
                                         && (
                                             <div>
                                                 <GenomicOverview
-                                                    mergedMutations={patientViewPageStore.mergedMutationData}
+                                                    mergedMutations={patientViewPageStore.mergedMutationDataFilteredByGene}
                                                     samples={patientViewPageStore.samples.result}
                                                     cnaSegments={patientViewPageStore.cnaSegments.result}
                                                     sampleOrder={sampleManager.sampleIndex}
@@ -443,6 +443,8 @@ export default class PatientViewPage extends React.Component<IPatientViewPagePro
                                                     sampleColors={sampleManager.sampleColors}
                                                     sampleManager={sampleManager}
                                                     containerWidth={WindowStore.size.width-20}
+                                                    sampleIdToMutationGenePanelId={patientViewPageStore.sampleToMutationGenePanelId}
+                                                    sampleIdToCopyNumberGenePanelId={patientViewPageStore.sampleToDiscreteGenePanelId}
                                                 />
                                                 <hr />
                                             </div>
