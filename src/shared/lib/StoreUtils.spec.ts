@@ -510,5 +510,9 @@ describe('StoreUtils', () => {
         it('handles "WGS"-tag values', () => {
             assert.isTrue(noGenePanelUsed('WGS'));
         });
+        it('returns false for any other gene panel id', () => {
+            assert.isFalse(noGenePanelUsed('dummy_gene_panel_id'));
+        });
     });
+
 });
