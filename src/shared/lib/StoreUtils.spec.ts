@@ -500,7 +500,7 @@ describe('StoreUtils', () => {
         });
     });
 
-    describe('wholeGenomeProfiled()', () => {
+    describe('noGenePanelUsed()', () => {
         it('handles undefined values', () => {
             assert.isTrue(noGenePanelUsed(undefined));
         });
