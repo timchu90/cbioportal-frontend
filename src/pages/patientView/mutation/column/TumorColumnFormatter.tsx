@@ -98,18 +98,18 @@ export default class TumorColumnFormatter {
 
     public static getProfiledSamplesForGene(entrezGeneId:number, samples:ClinicalDataBySampleId[], sampleToGenePanelId:{[sampleId: string]: string|undefined}, genePanelIdToEntrezGeneIds:{[genePanelId: string]: number[]}) {
         // For a given gene indicate whether it was profiled in a particular sample
-        return samples.reduce((map, nextSample, currentIndex:number) => {
+        return samples.reduce((sampleIsProfiled, nextSample, currentIndex:number) => {
             const genePanelId = sampleToGenePanelId[nextSample.id];
             
             const wholeGenome = noGenePanelUsed(genePanelId);
             const isInGenePanel = !wholeGenome && genePanelId && genePanelId in genePanelIdToEntrezGeneIds && genePanelIdToEntrezGeneIds[genePanelId].includes(entrezGeneId);
 
             if (wholeGenome || isInGenePanel) {
-                map[nextSample.id] = true;
+                sampleIsProfiled[nextSample.id] = true;
             } else {
-                map[nextSample.id] = false;
+                sampleIsProfiled[nextSample.id] = false;
             }
-            return map;
+            return sampleIsProfiled;
         }, {} as {[s:string]:boolean});
     }
 
