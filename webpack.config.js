@@ -156,8 +156,10 @@ var config = {
         new CopyWebpackPlugin([
             {from: './common-dist', to: 'reactapp'},
             {from: './src/rootImages', to: 'images'},
+            {from: './src/common', to: 'common'},
             {from: './src/pages/resultsView/network', to: 'reactapp/network'},
             {from: './src/globalStyles/prefixed-bootstrap.min.css', to: 'reactapp/prefixed-bootstrap.min.css'},
+            {from: './src/shared/lib/data/reference_genome_hg19.json', to: 'reactapp/reference_genome_hg19.json'},
             {from: './src/shared/legacy/igv.min.js', to: 'reactapp/igv.min.js'},
             {from: './src/shared/legacy/igv.css', to: 'reactapp/igv.css'},
             {from: './src/globalStyles/prefixed-bootstrap.min.css.map', to: 'reactapp/prefixed-bootstrap.min.css.map'}
@@ -302,6 +304,12 @@ var config = {
                     /igv\.min/,
                     /node_modules\/svg2pdf.js\//
                 ]
+            },
+
+            {
+                test: require.resolve("3dmol"),
+                // 3Dmol expects "this" to be the global context
+                use: "imports-loader?this=>window"
             }
 
 
@@ -474,7 +482,8 @@ if (isDev || isTest) {
                 {
                     loader: 'css-loader',
                     options: {
-                        modules:true
+                        modules:true,
+                        localIdentName:'[name]__[local]__[hash:base64:5]'
                     }
                 },
                 'sass-loader',

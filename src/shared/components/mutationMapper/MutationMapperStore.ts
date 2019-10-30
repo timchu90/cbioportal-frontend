@@ -1,27 +1,31 @@
 import * as _ from "lodash";
-import {computed, observable} from "mobx";
+import {computed} from "mobx";
 import MobxPromise, {cached, labelMobxPromises} from "mobxpromise";
 
-import {Gene, Mutation} from "shared/api/generated/CBioPortalAPI";
-import {IHotspotIndex} from "shared/model/CancerHotspots";
-import {IOncoKbCancerGenesWrapper, IOncoKbDataWrapper} from "shared/model/OncoKB";
-import ResidueMappingCache from "shared/cache/ResidueMappingCache";
-import {remoteData} from "shared/api/remoteData";
 import {
-    fetchPdbAlignmentData, fetchSwissProtAccession, fetchUniprotId, indexPdbAlignmentData,
-    fetchPfamDomainData, fetchCanonicalTranscriptWithFallback,
-    fetchEnsemblTranscriptsByEnsemblFilter, fetchPtmData
+    DataFilter, defaultHotspotFilter,
+    DefaultMutationMapperDataFetcher,
+    DefaultMutationMapperStore, defaultOncoKbFilter,
+    getMutationsToTranscriptId,
+    groupOncoKbIndicatorDataByMutations,
+    IHotspotIndex, isHotspot
+} from "react-mutation-mapper";
+
+import genomeNexusClient from "shared/api/genomeNexusClientInstance";
+import internalGenomeNexusClient from "shared/api/genomeNexusInternalClientInstance";
+import oncoKBClient from "shared/api/oncokbClientInstance";
+import {Gene, Mutation} from "shared/api/generated/CBioPortalAPI";
+import {IOncoKbData} from "shared/model/OncoKB";
+import ResidueMappingCache from "shared/cache/ResidueMappingCache";
+import {remoteData} from "public-lib/api/remoteData";
+import {
+    fetchPdbAlignmentData, indexPdbAlignmentData
 } from "shared/lib/StoreUtils";
 import {
     EnsemblTranscript,
-    PfamDomain,
-    PfamDomainRange,
-    VariantAnnotation,
-    GenomicLocation,
-    TranscriptConsequence,
-    Hotspot, PostTranslationalModification
-} from "shared/api/generated/GenomeNexusAPI";
-import {IndicatorQueryResp} from "shared/api/generated/OncoKbAPI";
+    VariantAnnotation
+} from "public-lib/api/generated/GenomeNexusAPI";
+import {CancerGene} from "public-lib/api/generated/OncoKbAPI";
 import {IPdbChain, PdbAlignmentIndex} from "shared/model/Pdb";
 import {calcPdbIdNumericalValue, mergeIndexedPdbAlignments, PDB_IGNORELIST} from "shared/lib/PdbUtils";
 import {lazyMobXTableSort} from "shared/components/lazyMobXTable/LazyMobXTable";
@@ -29,75 +33,56 @@ import {MutationTableDownloadDataFetcher} from "shared/lib/MutationTableDownload
 
 import PdbChainDataStore from "./PdbChainDataStore";
 import MutationMapperDataStore from "./MutationMapperDataStore";
-import {uniqueGenomicLocations, genomicLocationString, groupMutationsByProteinStartPos} from "shared/lib/MutationUtils";
-import {defaultHotspotFilter, groupHotspotsByMutations} from "shared/lib/CancerHotspotsUtils";
-import {defaultOncoKbIndicatorFilter, groupOncoKbIndicatorDataByMutations} from "shared/lib/OncoKbUtils";
-import {groupPtmDataByPosition, groupPtmDataByTypeAndPosition} from "shared/lib/PtmUtils";
-import { getMutationsToTranscriptId } from "shared/lib/MutationAnnotator";
-import Mutations from "pages/resultsView/mutation/Mutations";
+import {
+    groupMutationsByProteinStartPos,
+    countUniqueMutations
+} from "shared/lib/MutationUtils";
+import {defaultOncoKbIndicatorFilter} from "shared/lib/OncoKbUtils";
 
-import {IServerConfig} from "config/IAppConfig";
+import {IMutationMapperConfig} from "./MutationMapper";
+import autobind from "autobind-decorator";
+import {normalizeMutation, normalizeMutations} from "./MutationMapperUtils";
 
 export interface IMutationMapperStoreConfig {
     filterMutationsBySelectedTranscript?:boolean
 }
 
-export default class MutationMapperStore
+export default class MutationMapperStore extends DefaultMutationMapperStore
 {
-    @observable public activeTranscript: string | undefined = undefined;
-
     constructor(
-        protected config: IServerConfig,
-        protected mutationMapperStoreConfig:IMutationMapperStoreConfig,
-        public gene:Gene,
-        private getMutations:()=>Mutation[],
+        protected mutationMapperConfig: IMutationMapperConfig,
+        protected mutationMapperStoreConfig: IMutationMapperStoreConfig,
+        public gene: Gene,
+        protected getMutations: () => Mutation[],
         // TODO: we could merge indexedVariantAnnotations and indexedHotspotData
         public indexedHotspotData:MobxPromise<IHotspotIndex|undefined>,
         public indexedVariantAnnotations:MobxPromise<{[genomicLocation: string]: VariantAnnotation}|undefined>,
-        public oncoKbCancerGenes:IOncoKbCancerGenesWrapper,
-        public oncoKbData:IOncoKbDataWrapper,
+        public oncoKbCancerGenes:MobxPromise<CancerGene[] | Error>,
+        public oncoKbData:MobxPromise<IOncoKbData | Error>,
         public uniqueSampleKeyToTumorType:{[uniqueSampleKey:string]:string},
     )
     {
+        super(
+            gene,
+            {
+                isoformOverrideSource: mutationMapperConfig.isoformOverrideSource,
+                filterMutationsBySelectedTranscript: mutationMapperStoreConfig.filterMutationsBySelectedTranscript
+            },
+            getMutations);
+
+        const unnormalizedGetMutations = this.getMutations;
+        this.getMutations = ()=>normalizeMutations(unnormalizedGetMutations());
         labelMobxPromises(this);
     }
 
-
-    public get mutations() {
-        const canonicalTranscriptId = this.canonicalTranscript.result &&
-            this.canonicalTranscript.result.transcriptId;
-
-        if (this.canonicalTranscript.isPending || (this.mutationMapperStoreConfig.filterMutationsBySelectedTranscript && (this.transcriptsWithAnnotations.isPending || this.indexedVariantAnnotations.isPending))) {
-            return [];
-        } else {
-            if (this.mutationMapperStoreConfig.filterMutationsBySelectedTranscript) {
-                // pick default transcript if not activeTranscript
-                if (this.activeTranscript === undefined) {
-                    if (this.transcriptsWithAnnotations.result && this.transcriptsWithAnnotations.result.length > 0 && canonicalTranscriptId && !this.transcriptsWithAnnotations.result.includes(canonicalTranscriptId)) {
-                        // if there are annotated transcripts and activeTranscipt does
-                        // not have any, change the active transcript
-                        this.activeTranscript = this.transcriptsWithAnnotations.result[0];
-                    } else {
-                        this.activeTranscript = canonicalTranscriptId;
-                    }
-                }
-                if (this.activeTranscript && this.indexedVariantAnnotations.result && !_.isEmpty(this.indexedVariantAnnotations.result)) {
-                    return getMutationsToTranscriptId(this.getMutations(), this.activeTranscript, this.indexedVariantAnnotations.result);
-                } else {
-                    // this shouldn't happen unless error occurs with annotation
-                    // TODO: handle error in annotation more gracefully instead
-                    // of just showing all mutations
-                    return this.getMutations();
-                }
-            } else {
-                try {
-                    if (this.activeTranscript === undefined) {
-                        this.activeTranscript = canonicalTranscriptId;
-                    }
-                } catch (ex) {}
-                return this.getMutations();
-            }
-        }
+    @computed
+    public get dataFetcher(): DefaultMutationMapperDataFetcher {
+        return new DefaultMutationMapperDataFetcher({
+            myGeneUrlTemplate: this.mutationMapperConfig.mygene_info_url || undefined,
+            uniprotIdUrlTemplate: this.mutationMapperConfig.uniprot_id_url || undefined,
+            genomeNexusUrl: this.mutationMapperConfig.genomenexus_url || undefined,
+            oncoKbUrl: this.mutationMapperConfig.oncokb_public_api_url || undefined
+        }, genomeNexusClient, internalGenomeNexusClient, oncoKBClient);
     }
 
     readonly mutationData = remoteData({
@@ -109,7 +94,7 @@ export default class MutationMapperStore
             }
         },
         invoke: async () => {
-            return this.mutations;
+            return this.mutations as Mutation[];
         }
     }, []);
 
@@ -130,265 +115,84 @@ export default class MutationMapperStore
         }
     }, []);
 
-    readonly ptmData = remoteData({
-        await: () => [
-            this.mutationData
-        ],
-        invoke: async () => {
-            if (this.activeTranscript) {
-                return fetchPtmData(this.activeTranscript);
-            }
-            else {
-                return [];
-            }
-        },
-        onError: (err: Error) => {
-            // fail silently
+    public countUniqueMutations(mutations: Mutation[]): number
+    {
+        return countUniqueMutations(mutations);
+    }
+
+    @autobind
+    protected getDefaultTumorType(mutation: Mutation): string {
+        return this.uniqueSampleKeyToTumorType[mutation.uniqueSampleKey];
+    }
+
+    @autobind
+    protected getDefaultEntrezGeneId(mutation: Mutation): number {
+        return mutation.gene.entrezGeneId;
+    }
+
+    @autobind
+    protected customFilterApplier(filter: DataFilter,
+                                  mutation: Mutation,
+                                  positions: {[position: string]: {position: number}})
+    {
+
+        mutation = normalizeMutation(mutation);
+
+        let pick = false;
+
+        if (filter.position) {
+            pick = !!positions[mutation.proteinPosStart+""];
         }
-    }, []);
 
-    readonly ptmDataByProteinPosStart = remoteData<{[pos: number]: PostTranslationalModification[]}>({
-        await: () => [
-            this.ptmData
-        ],
-        invoke: async() => this.ptmData.result ? groupPtmDataByPosition(this.ptmData.result) : {}
-    }, {});
-
-    readonly ptmDataByTypeAndProteinPosStart = remoteData<{[type: string] : {[position: number] : PostTranslationalModification[]}}>({
-        await: () => [
-            this.ptmData
-        ],
-        invoke: async() => this.ptmData.result ? groupPtmDataByTypeAndPosition(this.ptmData.result) : {}
-    }, {});
-
-    readonly swissProtId = remoteData({
-        invoke: async() => {
-            // do not try fetching swissprot data for invalid entrez gene ids,
-            // just return the default value
-            if (this.gene.entrezGeneId < 1) {
-                return "";
-            }
-
-            const accession:string|string[] = await fetchSwissProtAccession(this.gene.entrezGeneId);
-
-            if (_.isArray(accession)) {
-                return accession[0];
-            }
-            else {
-                return accession;
-            }
-        },
-        onError: (err: Error) => {
-            // fail silently
+        if (pick &&
+            filter.hotspot &&
+            this.indexedHotspotData.result)
+        {
+            // TODO for now ignoring the actual filter value and treating as a boolean
+            pick = isHotspot(mutation, this.indexedHotspotData.result, defaultHotspotFilter);
         }
-    }, "");
 
-    readonly uniprotId = remoteData({
-        await: () => [
-            this.swissProtId
-        ],
-        invoke: async() => {
-            if (this.swissProtId.result) {
-                return fetchUniprotId(this.swissProtId.result);
-            }
-            else {
-                return "";
-            }
-        },
-        onError: (err: Error) => {
-            // fail silently
+        if (pick &&
+            filter.oncokb &&
+            this.oncoKbData.result &&
+            !(this.oncoKbData.result instanceof Error))
+        {
+            // TODO for now ignoring the actual filter value and treating as a boolean
+            pick = defaultOncoKbFilter(mutation,
+                this.oncoKbData.result,
+                this.getDefaultTumorType,
+                this.getDefaultEntrezGeneId);
         }
-    }, "");
 
-    readonly pfamDomainData = remoteData<PfamDomain[] | undefined>({
-        await: ()=> [
-                this.canonicalTranscript,
-                this.transcriptsWithProteinLength
-        ],
-        invoke: async()=>{
-            if (this.canonicalTranscript.result && this.canonicalTranscript.result.pfamDomains && this.canonicalTranscript.result.pfamDomains.length > 0) {
-                let domainRanges = this.canonicalTranscript.result.pfamDomains;
-                if (this.mutationMapperStoreConfig.filterMutationsBySelectedTranscript && this.transcriptsWithProteinLength.result && this.transcriptsWithProteinLength.result.length > 0) {
-                    // add domain ranges for all transcripts to this call
-                    domainRanges = [].concat.apply([domainRanges], _.compact(this.transcriptsWithProteinLength.result.map((transcriptId:string) => this.transcriptsByTranscriptId[transcriptId].pfamDomains)));
-                }
-                return fetchPfamDomainData(domainRanges.map((x: PfamDomainRange) => x.pfamDomainId));
-            } else {
-                return undefined;
-            }
-        }
-    }, undefined);
+        return pick;
+    }
 
-    readonly transcriptsByHugoSymbol = remoteData<EnsemblTranscript[] | undefined>({
-        invoke: async()=>{
-            if (this.gene) {
-                return fetchEnsemblTranscriptsByEnsemblFilter({"hugoSymbols":[this.gene.hugoGeneSymbol]});
-            } else {
-                return undefined;
-            }
-        },
-        onError: (err: Error) => {
-            throw new Error("Failed to fetch all transcripts");
-        }
-    }, undefined);
-
-    readonly canonicalTranscript = remoteData<EnsemblTranscript | undefined>({
-        await: () => [
-            this.transcriptsByHugoSymbol
-        ],
-        invoke: async()=>{
-            if (this.gene) {
-                return fetchCanonicalTranscriptWithFallback(this.gene.hugoGeneSymbol, this.isoformOverrideSource, this.transcriptsByHugoSymbol.result);
-            } else {
-                return undefined;
-            }
-        },
-        onError: (err: Error) => {
-            throw new Error("Failed to get canonical transcript");
-        }
-    }, undefined);
-
-    readonly allTranscripts = remoteData<EnsemblTranscript[] | undefined>({
-        await: () => [
-            this.transcriptsByHugoSymbol,
-            this.canonicalTranscript
-        ],
-        invoke: async()=> {
-            return _.compact(_.unionBy(
-                this.transcriptsByHugoSymbol.result,
-                [this.canonicalTranscript.result],
-                (t) => t && t.transcriptId
-            ));
-        },
-        onError: (err: Error) => {
-            throw new Error("Failed to get all transcripts");
-        }
-    }, undefined);
-
-    readonly transcriptsWithAnnotations = remoteData<string[] | undefined>({
-        await: () => [
-            this.indexedVariantAnnotations,
-            this.allTranscripts,
-            this.transcriptsWithProteinLength
-        ],
-        invoke: async()=>{
-            if (this.indexedVariantAnnotations.result && this.allTranscripts.result && this.transcriptsWithProteinLength.result && this.transcriptsWithProteinLength.result.length > 0) {
-                // ignore transcripts without protein length
-                // TODO: better solution is to show only mutations table, not
-                // lollipop plot for those transcripts
-                const transcripts:string[] = _.uniq([].concat.apply([], uniqueGenomicLocations(this.getMutations()).map(
-                    (gl:GenomicLocation) => {
-                        if (this.indexedVariantAnnotations.result && this.indexedVariantAnnotations.result[genomicLocationString(gl)]) {
-                            return this.indexedVariantAnnotations.result[genomicLocationString(gl)].transcript_consequences.map(
-                                (tc:TranscriptConsequence) => tc.transcript_id
-                            ).filter(
-                                (transcriptId: string) => this.transcriptsWithProteinLength.result!!.includes(transcriptId)
-                            );
-                        } else {
-                            return [];
-                        }
-                })));
-                // makes sure the annotations are actually of the form we are
-                // displaying (e.g. nonsynonymous)
-                return transcripts.filter((t:string) => (
-                    getMutationsToTranscriptId(this.getMutations(),
-                                            t,
-                                            this.indexedVariantAnnotations.result!!).length > 0
-                ));
-            } else {
-                return [];
-            }
-        },
-        onError: (err: Error) => {
-            throw new Error("Failed to get transcriptsWithAnnotations");
-        }
-    }, undefined);
-
-    readonly transcriptsWithProteinLength = remoteData<string[] | undefined>({
-        await: () => [
-            this.allTranscripts,
-            this.canonicalTranscript
-        ],
-        invoke: async()=>{
-            if (this.allTranscripts.result && this.canonicalTranscript.result) {
-                // ignore transcripts without protein length
-                // TODO: better solution is to show only mutations table, not
-                // lollipop plot for those transcripts
-                return _.compact(this.allTranscripts.result.map((et: EnsemblTranscript) => et.proteinLength && et.transcriptId));
-            } else {
-                return [];
-            }
-        },
-        onError: (err: Error) => {
-            throw new Error("Failed to get transcriptsWithProteinLength");
-        }
-    }, undefined);
-
+    // TODO remove when done refactoring react-mutation-mapper
     @computed get unfilteredMutationsByPosition(): {[pos: number]: Mutation[]} {
         return groupMutationsByProteinStartPos(this.dataStore.sortedData);
     }
 
-    @computed get filteredMutationsByPosition(): {[pos: number]: Mutation[]} {
-        return groupMutationsByProteinStartPos(this.dataStore.sortedFilteredData);
-    }
-
-    @computed get hotspotsByProteinPosStart(): {[pos: number]: Hotspot[]}
-    {
-        if (this.indexedHotspotData.result)
-        {
-            return groupHotspotsByMutations(
-                this.unfilteredMutationsByPosition, this.indexedHotspotData.result, defaultHotspotFilter);
-        }
-        else {
-            return {};
-        }
-    }
-
-    @computed get filteredHotspotsByProteinPosStart(): {[pos: number]: Hotspot[]}
-    {
-        if (this.indexedHotspotData.result)
-        {
-            return groupHotspotsByMutations(
-                this.filteredMutationsByPosition, this.indexedHotspotData.result, defaultHotspotFilter);
-        }
-        else {
-            return {};
-        }
-    }
-
-    @computed get oncoKbDataByProteinPosStart(): {[pos: number]: IndicatorQueryResp[]}
+    // TODO remove when done refactoring react-mutation-mapper
+    @computed get oncoKbDataByProteinPosStart()
     {
         if (this.oncoKbData.result &&
             !(this.oncoKbData.result instanceof Error))
         {
             return groupOncoKbIndicatorDataByMutations(
-                this.unfilteredMutationsByPosition, this.oncoKbData.result, defaultOncoKbIndicatorFilter);
+                this.unfilteredMutationsByPosition,
+                this.oncoKbData.result,
+                this.getDefaultTumorType,
+                this.getDefaultEntrezGeneId,
+                defaultOncoKbIndicatorFilter);
         }
         else {
             return {};
         }
-    }
-
-    @computed get filteredOncoKbDataByProteinPosStart(): {[pos: number]: IndicatorQueryResp[]}
-    {
-        if (this.oncoKbData.result &&
-            !(this.oncoKbData.result instanceof Error))
-        {
-            return groupOncoKbIndicatorDataByMutations(
-                this.filteredMutationsByPosition, this.oncoKbData.result, defaultOncoKbIndicatorFilter);
-        }
-        else {
-            return {};
-        }
-    }
-
-    @computed get isoformOverrideSource(): string {
-        return this.config.isoformOverrideSource || "uniprot";
     }
 
     @computed get processedMutationData(): Mutation[][] {
         // just convert Mutation[] to Mutation[][]
-        return (this.mutationData.result || []).map((mutation:Mutation) => [mutation]);
+        return (this.mutationData.result || []).map(mutation => [mutation]);
     }
 
     @computed get mergedAlignmentData(): IPdbChain[] {
@@ -413,10 +217,10 @@ export default class MutationMapperStore
     }
 
     @computed get transcriptsByTranscriptId(): {[transcriptId:string]: EnsemblTranscript} {
-        return _.keyBy(this.allTranscripts.result, ((transcript: EnsemblTranscript) => transcript.transcriptId));
+        return _.keyBy(this.allTranscripts.result as EnsemblTranscript[], (transcript  => transcript.transcriptId));
     }
 
-    @computed get mutationsByTranscriptId(): {[transcriptId:string]: Mutations[]} {
+    @computed get mutationsByTranscriptId(): {[transcriptId:string]: Mutation[]} {
         if (this.indexedVariantAnnotations.result && this.transcriptsWithAnnotations.result) {
             return _.fromPairs(
                 this.transcriptsWithAnnotations.result.map((t:string) => (
@@ -437,8 +241,8 @@ export default class MutationMapperStore
         return this.getMutations().length;
     }
 
-    @cached get dataStore():MutationMapperDataStore {
-        return new MutationMapperDataStore(this.processedMutationData);
+    @cached get dataStore(): MutationMapperDataStore {
+        return new MutationMapperDataStore(this.processedMutationData, this.customFilterApplier);
     }
 
     @cached get downloadDataFetcher(): MutationTableDownloadDataFetcher {

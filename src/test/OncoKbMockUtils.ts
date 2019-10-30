@@ -1,4 +1,4 @@
-import {IndicatorQueryResp} from "shared/api/generated/OncoKbAPI";
+import {IndicatorQueryResp} from "public-lib/api/generated/OncoKbAPI";
 import * as _ from 'lodash';
 
 export function emptyQueryIndicator(): IndicatorQueryResp
@@ -10,6 +10,8 @@ export function emptyQueryIndicator(): IndicatorQueryResp
         geneSummary: "",
         highestResistanceLevel: "LEVEL_R3",
         highestSensitiveLevel: "LEVEL_4",
+        highestDiagnosticImplicationLevel: "LEVEL_Dx1",
+        highestPrognosticImplicationLevel: "LEVEL_Px1",
         hotspot: false,
         lastUpdate: "",
         mutationEffect: {
@@ -38,6 +40,8 @@ export function emptyQueryIndicator(): IndicatorQueryResp
             svType: "DELETION" // TODO: hack because svType is not optional
         },
         treatments: [],
+        diagnosticImplications: [],
+        prognosticImplications: [],
         tumorTypeSummary: "",
         diagnosticSummary: "",
         prognosticSummary: "",

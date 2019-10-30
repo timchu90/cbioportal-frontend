@@ -3,13 +3,8 @@ import styles from "./studySummaryTabStyles.module.scss";
 import chartHeaderStyles from "../chartHeader/styles.module.scss";
 import {ChartContainer, IChartContainerProps} from 'pages/studyView/charts/ChartContainer';
 import {observable} from 'mobx';
-import {
-    CopyNumberAlterationIdentifier,
-    GeneIdentifier,
-    StudyViewPageStore
-} from 'pages/studyView/StudyViewPageStore';
-import {ClinicalAttribute, Gene, SampleIdentifier} from 'shared/api/generated/CBioPortalAPI';
-import {SingleGeneQuery} from 'shared/lib/oql/oql-parser';
+import {CopyNumberAlterationIdentifier, GeneIdentifier, StudyViewPageStore} from 'pages/studyView/StudyViewPageStore';
+import {SampleIdentifier} from 'shared/api/generated/CBioPortalAPI';
 import {
     ClinicalDataIntervalFilterValue,
     CopyNumberGeneFilterElement,
@@ -21,12 +16,13 @@ import ReactGridLayout from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import {observer} from 'mobx-react';
-import classNames from 'classnames';
 import {ChartTypeEnum, STUDY_VIEW_CONFIG} from "../StudyViewConfig";
 import ProgressIndicator, {IProgressIndicatorItem} from "../../../shared/components/progressIndicator/ProgressIndicator";
 import autobind from 'autobind-decorator';
 import LabeledCheckbox from "../../../shared/components/labeledCheckbox/LabeledCheckbox";
-import {AnalysisGroup, ChartMeta, ChartType} from "../StudyViewUtils";
+import {DataType} from "public-lib/components/downloadControls/DownloadControls";
+import {ChartMeta, ChartType} from "../StudyViewUtils";
+
 
 export interface IStudySummaryTabProps {
     store: StudyViewPageStore
@@ -54,32 +50,8 @@ export class StudySummaryTab extends React.Component<IStudySummaryTabProps, {}> 
             onDataBinSelection: (chartMeta: ChartMeta, dataBins: DataBin[]) => {
                 this.store.updateClinicalDataIntervalFilters(chartMeta, dataBins);
             },
-            onUpdateIntervalFilters: (chartMeta: ChartMeta, values: ClinicalDataIntervalFilterValue[]) => {
-                this.store.updateClinicalDataIntervalFiltersByValues(chartMeta, values);
-            },
             onToggleLogScale: (chartMeta: ChartMeta) => {
                 this.store.toggleLogScale(chartMeta);
-            },
-            addGeneFilters: (genes: GeneIdentifier[]) => {
-                this.store.addGeneFilters(genes);
-            },
-            removeGeneFilter: (entrezGeneId:number) => {
-                this.store.removeGeneFilter(entrezGeneId);
-            },
-            resetGeneFilter: (chartMeta: ChartMeta) => {
-                this.store.resetGeneFilter();
-            },
-            resetCNAGeneFilter: (chartMeta: ChartMeta) => {
-                this.store.resetCNAGeneFilter();
-            },
-            removeCNAGeneFilter: (filter:CopyNumberGeneFilterElement) => {
-                this.store.removeCNAGeneFilters(filter);
-            },
-            resetMutationCountVsCNAFilter: ()=>{
-                this.store.resetMutationCountVsCNAFilter();
-            },
-            addCNAGeneFilters: (genes:CopyNumberAlterationIdentifier[]) => {
-                this.store.addCNAGeneFilters(genes);
             },
             onDeleteChart: (chartMeta: ChartMeta) => {
                 this.store.resetFilterAndChangeChartVisibility(chartMeta, false);
@@ -87,26 +59,11 @@ export class StudySummaryTab extends React.Component<IStudySummaryTabProps, {}> 
             onChangeChartType: (chartMeta: ChartMeta, newChartType: ChartType) => {
                 this.store.changeChartType(chartMeta, newChartType);
             },
-            updateChartSampleIdentifierFilter: (uniqueKey:string, cases: SampleIdentifier[], keepCurrent?:boolean) => {
-                this.store.updateChartSampleIdentifierFilter(uniqueKey, cases, keepCurrent);
-            },
             updateMutationCountVsCNAFilter:(bounds:RectangleBounds)=>{
                 this.store.setMutationCountVsCNAFilter(bounds);
             },
-            clearCNAGeneFilter: () => {
-                this.store.clearCNAGeneFilter();
-            },
-            clearGeneFilter: () => {
-                this.store.clearGeneFilter();
-            },
-            clearChartSampleIdentifierFilter: (chartMeta: ChartMeta) => {
-                this.store.clearChartSampleIdentifierFilter(chartMeta);
-            },
             isNewlyAdded:(uniqueKey: string) => {
                 return this.store.isNewlyAdded(uniqueKey);
-            },
-            clearAllFilters: () => {
-                this.store.clearAllFilters();
             },
             setCustomChartFilters: (chartMeta: ChartMeta, values: string[]) => {
                 this.store.setCustomChartFilters(chartMeta, values);
@@ -120,6 +77,9 @@ export class StudySummaryTab extends React.Component<IStudySummaryTabProps, {}> 
     renderAttributeChart = (chartMeta: ChartMeta) => {
         const props:Partial<IChartContainerProps> = {
             chartMeta: chartMeta,
+            chartType: this.props.store.chartsType.get(chartMeta.uniqueKey),
+            store: this.props.store,
+            dimension: this.store.chartsDimension.get(chartMeta.uniqueKey),
             openComparisonPage: this.store.openComparisonPage,
             title: chartMeta.displayName,
             filters: [],
@@ -127,11 +87,13 @@ export class StudySummaryTab extends React.Component<IStudySummaryTabProps, {}> 
             isNewlyAdded: this.handlers.isNewlyAdded,
             studyViewFilters: this.store.filters,
             analysisGroupsSettings: this.store.analysisGroupsSettings,
+            cancerGeneFilterEnabled: this.store.oncokbCancerGeneFilterEnabled,
             setComparisonConfirmationModal: this.store.setComparisonConfirmationModal
         };
 
-        switch (chartMeta.chartType) {
-            case ChartTypeEnum.PIE_CHART: {
+        const {BAR_CHART, SURVIVAL, CNA_GENES_TABLE, TABLE, SCATTER, PIE_CHART, MUTATED_GENES_TABLE, FUSION_GENES_TABLE} = ChartTypeEnum;
+        switch (this.store.chartsType.get(chartMeta.uniqueKey)) {
+            case PIE_CHART: {
 
                 //if the chart is one of the custom charts then get the appropriate promise
                 if(this.store.isCustomChart(chartMeta.uniqueKey)) {
@@ -146,11 +108,11 @@ export class StudySummaryTab extends React.Component<IStudySummaryTabProps, {}> 
                     props.onResetSelection = this.handlers.onValueSelection;
                 }
                 props.onChangeChartType = this.handlers.onChangeChartType;
-                props.getData = () => this.store.isCustomChart(chartMeta.uniqueKey) ? this.store.getCustomChartDownloadData(chartMeta) : this.store.getClinicalData(chartMeta);
-                props.downloadTypes = ["Data", "SVG", "PDF"];
+                props.getData = (dataType?: DataType) => this.store.getPieChartDataDownload(chartMeta, dataType);
+                props.downloadTypes = ["Summary Data", "Full Data", "SVG", "PDF"];
                 break;
             }
-            case ChartTypeEnum.BAR_CHART: {
+            case BAR_CHART: {
                 props.promise = this.store.getClinicalDataBin(chartMeta);
                 props.filters = this.store.getClinicalDataIntervalFiltersByUniqueKey(chartMeta.uniqueKey);
                 props.onDataBinSelection = this.handlers.onDataBinSelection;
@@ -163,7 +125,7 @@ export class StudySummaryTab extends React.Component<IStudySummaryTabProps, {}> 
                 props.downloadTypes = ["Data", "SVG", "PDF"];
                 break;
             }
-            case ChartTypeEnum.TABLE: {
+            case TABLE: {
                 if (this.store.isCustomChart(chartMeta.uniqueKey)) {
                     props.filters = this.store.getCustomChartFilters(props.chartMeta!.uniqueKey);
                     props.onValueSelection = this.handlers.setCustomChartFilters;
@@ -180,40 +142,59 @@ export class StudySummaryTab extends React.Component<IStudySummaryTabProps, {}> 
                 props.downloadTypes = ["Data"];
                 break;
             }
-            case ChartTypeEnum.MUTATED_GENES_TABLE: {
+            case MUTATED_GENES_TABLE: {
                 props.filters = this.store.getMutatedGenesTableFilters();
-                props.promise = this.store.mutatedGeneData;
-                props.onValueSelection = this.handlers.addGeneFilters;
-                props.onResetSelection = this.handlers.resetGeneFilter;
+                props.promise = this.store.mutatedGeneTableRowData;
+                props.onValueSelection = this.store.addGeneFilters;
+                props.onResetSelection = this.store.resetMutatedGeneFilter;
                 props.selectedGenes=this.store.selectedGenes;
                 props.onGeneSelect=this.store.onCheckGene;
                 props.title = props.title + ( !this.store.molecularProfileSampleCounts.isComplete || this.store.molecularProfileSampleCounts.result === undefined ? '' : ` (${this.store.molecularProfileSampleCounts.result.numberOfMutationProfiledSamples} profiled samples)`),
                 props.getData = () => this.store.getMutatedGenesDownloadData();
+                props.genePanelCache = this.store.genePanelCache;
                 props.downloadTypes = ["Data"];
+                props.filterByCancerGenes= this.store.filterMutatedGenesTableByCancerGenes;
+                props.onChangeCancerGeneFilter = this.store.updateMutatedGenesTableByCancerGenesFilter;
                 break;
             }
-            case ChartTypeEnum.CNA_GENES_TABLE: {
+            case FUSION_GENES_TABLE: {
+                props.filters = this.store.getFusionGenesTableFilters();
+                props.promise = this.store.fusionGeneTableRowData;
+                props.onValueSelection = this.store.addFusionGeneFilters;
+                props.onResetSelection = this.store.resetFusionGeneFilter;
+                props.selectedGenes=this.store.selectedGenes;
+                props.onGeneSelect=this.store.onCheckGene;
+                props.title = props.title + ( !this.store.molecularProfileSampleCounts.isComplete || this.store.molecularProfileSampleCounts.result === undefined ? '' : ` (${this.store.molecularProfileSampleCounts.result.numberOfMutationProfiledSamples} profiled samples)`),
+                props.getData = () => this.store.getFusionGenesDownloadData();
+                props.genePanelCache = this.store.genePanelCache;
+                props.downloadTypes = ["Data"];
+                props.filterByCancerGenes= this.store.filterFusionGenesTableByCancerGenes;
+                props.onChangeCancerGeneFilter = this.store.updateFusionGenesTableByCancerGenesFilter;
+                break;
+            }
+            case CNA_GENES_TABLE: {
                 props.filters = this.store.getCNAGenesTableFilters();
-                props.promise = this.store.cnaGeneData;
-                props.onValueSelection = this.handlers.addCNAGeneFilters;
+                props.promise = this.store.cnaGeneTableRowData;
+                props.onValueSelection = this.store.addCNAGeneFilters;
                 props.onResetSelection = this.handlers.resetCNAGeneFilter;
                 props.selectedGenes=this.store.selectedGenes;
                 props.onGeneSelect=this.store.onCheckGene;
                 props.title = props.title + ( !this.store.molecularProfileSampleCounts.isComplete || this.store.molecularProfileSampleCounts.result === undefined ? '' : ` (${this.store.molecularProfileSampleCounts.result.numberOfCNAProfiledSamples} profiled samples)`),
                 props.getData = () => this.store.getGenesCNADownloadData();
+                props.genePanelCache = this.store.genePanelCache;
                 props.downloadTypes = ["Data"];
+                props.filterByCancerGenes= this.store.filterCNAGenesTableByCancerGenes;
+                props.onChangeCancerGeneFilter = this.store.updateCNAGenesTableByCancerGenesFilter
                 break;
             }
-            case ChartTypeEnum.SURVIVAL: {
+            case SURVIVAL: {
                 props.promise = this.store.survivalPlotData;
                 props.getData = () => this.store.getSurvivalDownloadData(chartMeta);
-                // only want to pass these in when necessary, otherwise charts will unnecessarily update when they change
-                props.patientKeysWithNAInSelectedClinicalData = this.store.patientKeysWithNAInSelectedClinicalData;
                 props.patientToAnalysisGroup = this.store.patientToAnalysisGroup;
                 props.downloadTypes = ["Data", "SVG", "PDF"];
                 break;
             }
-            case ChartTypeEnum.SCATTER: {
+            case SCATTER: {
                 if (this.store.getMutationCountVsCNAFilter()) {
                     props.filters = [this.store.getMutationCountVsCNAFilter()];
                 }
@@ -330,6 +311,34 @@ export class StudySummaryTab extends React.Component<IStudySummaryTabProps, {}> 
                             </ul>
                         </div>
                     </div>
+                }
+                {
+                    this.store.showSettingRestoreMsg &&
+                    <div>
+                        <div className="alert alert-info">
+                            <button type="button" className="close"
+                                    onClick={() => {
+                                        this.store.hideRestoreSettingsMsg = true;
+                                    }
+                                   }>&times;</button>
+                            Your previously saved layout preferences have been applied.
+                            <button className='btn btn-primary btn-sm'
+                                    onClick={() => {
+                                        this.store.hideRestoreSettingsMsg = true;
+                                    }}
+                                    style={{marginLeft: '10px'}}>Keep Saved Layout
+                            </button>
+
+                            <button className='btn btn-primary btn-sm'
+                                    onClick={() => {
+                                        this.store.hideRestoreSettingsMsg = true;
+                                        this.store.undoUserSettings();
+                                    }}
+                                    style={{marginLeft: '10px'}}>Revert to Previous Layout
+                            </button>
+                        </div>
+                    </div>
+
                 }
 
                 {!this.store.loadingInitialDataForSummaryTab &&

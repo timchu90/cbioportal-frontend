@@ -3,17 +3,16 @@ declare module '*.scss';
 declare module '*.json';
 
 // these packages are missing typings
+declare module 'fmin';
 declare module "deep-equal-in-any-order";
 declare module 'object-sizeof';
 declare module 'save-svg-as-png'
 declare module 'react-file-download';
-declare module 'react-select-checked';
 declare module 'react-zeroclipboard';
 declare module 'reactableMSK';
 declare module 'redux-seamless-immutable';
 declare module 'render-if';
 declare module 'react-if';
-declare module 'react-collapse';
 declare module 'webpack-raphael';
 declare module 'javascript-natural-sort';
 declare module 'expect';
@@ -41,9 +40,12 @@ declare module 'little-loader';
 declare module 'igv/dist/igv.min.js';
 declare module 'react-mfb';
 declare module 'regression';
-declare module 'react-select2';
+declare module 'react-select1';
 declare module 'react-select';
 declare module 'pluralize';
 declare module 'svg2pdf.js';
 declare module 'jspdf-yworks';
+declare module '3dmol';
 declare module 'reactour';
+declare module 'react-reveal';
+declare module 'react-column-resizer';

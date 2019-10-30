@@ -8,17 +8,19 @@ import {observer} from "mobx-react";
 import Draggable from 'react-draggable';
 import fileDownload from 'react-file-download';
 import classnames from 'classnames';
-import DefaultTooltip from "shared/components/defaultTooltip/DefaultTooltip";
+import {IProteinImpactTypeColors} from "react-mutation-mapper";
+import DefaultTooltip from "public-lib/components/defaultTooltip/DefaultTooltip";
 import PdbHeaderCache from "shared/cache/PdbHeaderCache";
 import ResidueMappingCache from "shared/cache/ResidueMappingCache";
-import {ResidueMapping} from "shared/api/generated/Genome2StructureAPI";
+import {ResidueMapping} from "public-lib/api/generated/Genome2StructureAPI";
 import {CacheData} from "shared/lib/LazyMobXCache";
 import {ILazyMobXTableApplicationDataStore} from "shared/lib/ILazyMobXTableApplicationDataStore";
 import MutationMapperDataStore from "shared/components/mutationMapper/MutationMapperDataStore";
 import {Mutation} from "shared/api/generated/CBioPortalAPI";
 import {IPdbChain, PdbAlignmentIndex} from "shared/model/Pdb";
 import {
-    groupMutationsByProteinStartPos, getColorForProteinImpactType, IProteinImpactTypeColors,
+    groupMutationsByProteinStartPos,
+    getColorForProteinImpactType,
     getProteinStartPositionsByRange
 } from "shared/lib/MutationUtils";
 import StructureViewer from "./StructureViewer";

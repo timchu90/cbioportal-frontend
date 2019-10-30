@@ -5,12 +5,12 @@ import {observer, inject, Observer } from "mobx-react";
 import { observable } from 'mobx';
 import Chart from 'chart.js';
 import AppConfig from 'appConfig';
-import 'react-select/dist/react-select.css';
+import 'react-select1/dist/react-select.css';
 import {CancerStudyQueryUrlParams, QueryStore} from "../../shared/components/query/QueryStore";
 import QueryAndDownloadTabs from "../../shared/components/query/QueryAndDownloadTabs";
 import {PageLayout} from "../../shared/components/PageLayout/PageLayout";
 import RightBar from "../../shared/components/rightbar/RightBar";
-import getBrowserWindow from "../../shared/lib/getBrowserWindow";
+import getBrowserWindow from "../../public-lib/lib/getBrowserWindow";
 // tslint:disable-next-line:no-import-side-effect
 import "./homePage.scss";
 import autobind from "autobind-decorator";
@@ -34,7 +34,7 @@ export function createQueryStore(currentQuery?:any) {
     const win:any = window;
 
     const queryStore = new QueryStore(currentQuery);
-    
+
     queryStore.singlePageAppSubmitRoutine = function(query:CancerStudyQueryUrlParams) {
 
         // normalize this
@@ -80,6 +80,7 @@ export default class HomePage extends React.Component<IResultsViewPageProps, {}>
             <PageLayout className="homePageLayout" noMargin={true} rightBar={<RightBar queryStore={this.queryStore} />}>
 
                 <div className={"headBlock"} dangerouslySetInnerHTML={{__html:AppConfig.serverConfig.skin_blurb!}}></div>
+
                 <QueryAndDownloadTabs getQueryStore={this.getQueryStore} showQuickSearchTab={AppConfig.serverConfig.quick_search_enabled} showDownloadTab={true}/>
 
             </PageLayout>

@@ -1,7 +1,6 @@
 import {
     CustomChartIdentifier,
-    CustomGroup,
-    NewChart
+    CustomGroup
 } from "../../StudyViewPageStore";
 import * as _ from 'lodash';
 import {Sample} from "../../../../shared/api/generated/CBioPortalAPI";
@@ -132,7 +131,7 @@ export function validateLines(lines: InputLine[], caseType: ClinicalDataType, al
                 validLine = false;
             } else {
                 _case = getUniqueCaseId(selectedStudies[0], line.caseId);
-                if (validPair[_case] === undefined) {
+                if (!validPair[_case]) {
                     invalidCases.push(line.caseId);
                     validLine = false;
                 } else {
@@ -156,6 +155,9 @@ export function validateLines(lines: InputLine[], caseType: ClinicalDataType, al
                         occurrence[_case] = 0;
                     }
                     occurrence[_case]++;
+                } else {
+                    invalidCases.push(line.caseId);
+                    validLine = false;
                 }
             }
         }
@@ -231,19 +233,19 @@ export function getGroups(lines: InputLine[], singleStudyId: string, caseType: C
         if (acc[groupName] == undefined) {
             acc[groupName] = {
                 name: groupName,
-                cases: []
+                sampleIdentifiers: []
             }
         }
 
         const caseId = line.studyId === undefined ? `${singleStudyId}:${line.caseId}` : `${line.studyId}:${line.caseId}`;
-        const maps = isPatientId ? (patientMap[caseId] || []) : [(sampleMap[caseId] || [])];
-        const matches = parseCase(isPatientId, maps);
-        acc[groupName].cases.push(...matches);
+        const caseMap = isPatientId ? patientMap[caseId] : [sampleMap[caseId]];
+        const caseIdentifiers = caseMap === undefined ? [] : parseCase(caseMap);
+        acc[groupName].sampleIdentifiers.push(...caseIdentifiers);
         return acc;
     }, {} as { [key: string]: CustomGroup }));
 
     return groups.map(group=>{
-        group.cases = _.uniqBy(group.cases, item => `${item.studyId}:${item.sampleId}`);
+        group.sampleIdentifiers = _.uniqBy(group.sampleIdentifiers, item => `${item.studyId}:${item.sampleId}`);
         return group;
     });
 }
@@ -279,11 +281,10 @@ export function parseContent(content: string, needToValidate: boolean = false, s
     }
 }
 
-export function parseCase(isPatientId: boolean, mappedSamples: Sample[]): CustomChartIdentifier[] {
+export function parseCase(mappedSamples: Sample[]): CustomChartIdentifier[] {
     return mappedSamples.map(sample => {
         return {
             studyId: sample.studyId,
-            patientAttribute: isPatientId,
             sampleId: sample.sampleId,
             patientId: sample.patientId
         }

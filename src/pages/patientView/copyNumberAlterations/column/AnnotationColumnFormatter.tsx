@@ -1,14 +1,15 @@
 import * as React from 'react';
 import * as _ from "lodash";
+import {oncoKbAnnotationSortValue} from "react-mutation-mapper";
 import {CancerStudy, DiscreteCopyNumberData} from "shared/api/generated/CBioPortalAPI";
 import {
     IAnnotation, IAnnotationColumnProps, default as DefaultAnnotationColumnFormatter
 } from "shared/components/mutationTable/column/AnnotationColumnFormatter";
 import {IOncoKbCancerGenesWrapper, IOncoKbData, IOncoKbDataWrapper} from "shared/model/OncoKB";
-import OncoKB from "shared/components/annotation/oncokb/OncoKB";
 import Civic from "shared/components/annotation/Civic";
-import {generateQueryVariantId, generateQueryVariant} from "shared/lib/OncoKbUtils";
-import {CancerGene, IndicatorQueryResp, Query} from "shared/api/generated/OncoKbAPI";
+import {generateQueryVariant} from "shared/lib/OncoKbUtils";
+import {generateQueryVariantId} from "public-lib/lib/OncoKbUtils";
+import {CancerGene, IndicatorQueryResp, Query} from "public-lib/api/generated/OncoKbAPI";
 import {getAlterationString} from "shared/lib/CopyNumberUtils";
 import {ICivicVariant, ICivicGene, ICivicEntry, ICivicVariantData, ICivicGeneData, ICivicGeneDataWrapper, ICivicVariantDataWrapper} from "shared/model/Civic.ts";
 import {buildCivicEntry, getCivicCNAVariants} from "shared/lib/CivicUtils";
@@ -94,8 +95,8 @@ export default class AnnotationColumnFormatter
         let geneSymbol: string = copyNumberData[0].gene.hugoGeneSymbol;
         let geneVariants:{[name: string]: ICivicVariantData} = getCivicCNAVariants(copyNumberData, geneSymbol, civicVariants);
         let geneEntry: ICivicGeneData = civicGenes[geneSymbol];
-        //Only return data for genes with variants or it has a description provided by the Civic API
-        if (!_.isEmpty(geneVariants) || geneEntry && geneEntry.description !== "") {
+        //geneEntry must exists, and only return data for genes with variants or it has a description provided by the Civic API
+        if (geneEntry && (!_.isEmpty(geneVariants) || geneEntry.description !== "")) {
             civicEntry = buildCivicEntry(geneEntry, geneVariants);
         }
 
@@ -137,14 +138,18 @@ export default class AnnotationColumnFormatter
             oncoKbData.uniqueSampleKeyToTumorType[copyNumberData[0].uniqueSampleKey],
             getAlterationString(copyNumberData[0].alteration));
 
-        let indicator = oncoKbData.indicatorMap[id];
-        if (indicator.query.tumorType === null && studyIdToStudy) {
-            const studyMetaData = studyIdToStudy[copyNumberData[0].studyId];
-            if (studyMetaData.cancerTypeId !== "mixed") {           
-                indicator.query.tumorType = studyMetaData.cancerType.name;
+        if (oncoKbData.indicatorMap[id]) {
+            let indicator = oncoKbData.indicatorMap[id];
+            if (indicator.query.tumorType === null && studyIdToStudy) {
+                const studyMetaData = studyIdToStudy[copyNumberData[0].studyId];
+                if (studyMetaData.cancerTypeId !== "mixed") {           
+                    indicator.query.tumorType = studyMetaData.cancerType.name;
+                }
             }
+            return indicator;
+        } else {
+            return undefined;
         }
-        return indicator;
     }
 
     public static getEvidenceQuery(copyNumberData:DiscreteCopyNumberData[], oncoKbData:IOncoKbData): Query|undefined
@@ -163,7 +168,7 @@ export default class AnnotationColumnFormatter
                             civicVariants?: ICivicVariantDataWrapper):number[] {
         const annotationData:IAnnotation = AnnotationColumnFormatter.getData(data, oncoKbCancerGenes, oncoKbData, civicGenes, civicVariants);
 
-        return _.flatten([OncoKB.sortValue(annotationData.oncoKbIndicator), Civic.sortValue(annotationData.civicEntry), annotationData.isOncoKbCancerGene ? 1 : 0]);
+        return _.flatten([oncoKbAnnotationSortValue(annotationData.oncoKbIndicator), Civic.sortValue(annotationData.civicEntry), annotationData.isOncoKbCancerGene ? 1 : 0]);
     }
 
     public static renderFunction(data:DiscreteCopyNumberData[], columnProps:IAnnotationColumnProps)

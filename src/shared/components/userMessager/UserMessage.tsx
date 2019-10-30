@@ -2,17 +2,16 @@ import {Modal} from "react-bootstrap";
 import * as React from "react";
 import {observer} from "mobx-react";
 import request from 'superagent';
-import {remoteData} from "../../api/remoteData";
+import {remoteData} from "public-lib/api/remoteData";
 import {action, computed, observable} from "mobx";
 import autobind from "autobind-decorator";
 import * as _ from 'lodash';
 import styles from './styles.module.scss';
 import classNames from 'classnames';
-import {isWebdriver} from "shared/lib/tracking";
+import {isWebdriver} from "public-lib/lib/webdriverUtils";
 
 export interface IUserMessage {
     dateStart?:number;
-    title:string;
     dateEnd:number;
     content:string;
     id:string;
@@ -22,23 +21,22 @@ function makeMessageKey(id:string){
     return `portalMessageKey-${id}`;
 }
 
-const MESSAGE_DATA_TEST: IUserMessage[] = [
-    {
-        dateEnd:100000000000000,
-        content: `<strong>Announcing the new Group Comparison feature</strong>: Compare clinical and genomic features of user-defined groups of samples/patients.  <a class='btn btn-primary' href="/tutorials#group-comparison" target="_blank">View Tutorial</a>`,
-        id:'3.0-intro',
-        title:'Announcing the Group Comparison feature of cBioPortal 3.0!'
-    }
+const MESSAGE_DATA: IUserMessage[] = [
+    // ADD MESSAGE IN FOLLOWING FORMAT
+    // UNIQUE ID IS IMPORTANT B/C WE REMEMBER A MESSAGE HAS BEEN SHOWN
+    // BASED ON USERS LOCALSTORAGE
+    // {
+    //     dateEnd:100000000000000,
+    //     content: `<p>Some markup and message here</p>`,
+    //     id:'some very unique ID here, e.g. 3.0-intro',
+    // }
 ];
-
 
 @observer
 export default class UserMessager extends React.Component<{ dataUrl?:string }, {}> {
 
     messageData = remoteData<IUserMessage[]>(async ()=>{
-        //const data = await request(this.props.dataUrl);
-        return Promise.resolve(MESSAGE_DATA_TEST);
-
+        return Promise.resolve(MESSAGE_DATA);
     });
 
     @observable dismissed = false;

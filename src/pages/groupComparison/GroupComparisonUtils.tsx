@@ -19,7 +19,7 @@ import {MakeMobxView, MobxViewAlwaysComponent} from "../../shared/components/Mob
 import OverlapExclusionIndicator from "./OverlapExclusionIndicator";
 import Loader from "../../shared/components/loadingIndicator/LoadingIndicator";
 import ErrorMessage from "../../shared/components/ErrorMessage";
-import {stringListToIndexSet} from "../../shared/lib/StringUtils";
+import {stringListToIndexSet} from "public-lib/lib/StringUtils";
 
 export enum GroupComparisonTab {
     OVERLAP = "overlap",
@@ -312,7 +312,9 @@ export function MakeEnrichmentsTabUI(
     getStore:()=>GroupComparisonStore,
     getEnrichmentsUI:()=>MobxViewAlwaysComponent,
     enrichmentType:string,
-    multiGroupAnalysisPossible?:boolean
+    multiGroupAnalysisPossible?:boolean,
+    patientAnalysisPossible?:boolean,
+    multiStudyAnalysisPossible?:boolean
 ) {
     return MakeMobxView({
         await:()=>{
@@ -336,11 +338,11 @@ export function MakeEnrichmentsTabUI(
                         {ENRICHMENTS_NOT_2_GROUPS_MSG(store.activeGroups.result!.length, store._activeGroupsNotOverlapRemoved.result!.length, multiGroupAnalysisPossible)}
                     </span>
                 );
-            } else if (store.activeStudyIds.result!.length > 1) {
+            } else if (store.activeStudyIds.result!.length > 1 && !multiStudyAnalysisPossible) {
                 return <span>{ENRICHMENTS_TOO_MANY_STUDIES_MSG(enrichmentType)}</span>;
             } else {
                 const content:any = [];
-                content.push(<OverlapExclusionIndicator store={store} only="sample"/>);
+                content.push(<OverlapExclusionIndicator store={store} only={(patientAnalysisPossible && store.usePatientLevelEnrichments) ? "patient" : "sample"}/>);
                 content.push(getEnrichmentsUI().component);
                 return content;
             }
@@ -366,6 +368,9 @@ export function ENRICHMENTS_NOT_2_GROUPS_MSG(numActiveGroups:number, numSelected
 export function ENRICHMENTS_TOO_MANY_STUDIES_MSG(enrichmentsType:string) {
     return `The selected comparison groups span more than one study, so we can't show ${enrichmentsType} enrichments. Please change your selection in the Groups section so that all samples only come from one study.`;
 }
+
+export const SURVIVAL_NOT_ENOUGH_GROUPS_MSG =
+    "We need at least 1 group to show survival. Please select more groups from the Groups section above.";
 
 export const SURVIVAL_TOO_MANY_GROUPS_MSG =
     "We can't show survival for more than 10 groups. Please deselect groups in the Groups section.";
@@ -450,19 +455,20 @@ export function MissingSamplesMessage(
     );
 }
 
-export function getQuartiles<D extends {value:string}>(
-    data:D[]
+export function splitData<D extends {value:string}>(
+    data:D[],
+    numberOfSplits:number
 ) {
     data = _.chain(data)
         .filter(d=>!isNaN(d.value as any))
         .sortBy(d=>parseFloat(d.value))
         .value();
 
-    const quarterLength = data.length / 4;
-    const quartileLimits = [0, Math.floor(quarterLength), Math.floor(2*quarterLength), Math.floor(3*quarterLength), data.length];
+    const splitLength = data.length / numberOfSplits;
     const quartiles:D[][] = [];
-    for (const i of [0,1,2,3]) {
-        const newQuartile = data.slice(quartileLimits[i], quartileLimits[i+1]);
+
+    for( var i = 0; i < numberOfSplits; i++ ){
+        const newQuartile = data.slice(splitLength*i, splitLength*(i+1));
         if (newQuartile.length > 0)
             // handle edge case for small amounts of data where some quartile ranges might be empty
             quartiles.push(newQuartile);

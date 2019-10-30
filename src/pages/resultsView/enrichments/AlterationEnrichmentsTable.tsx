@@ -11,6 +11,7 @@ import { cytobandFilter } from 'pages/resultsView/ResultsViewTableUtils';
 import autobind from 'autobind-decorator';
 import { EnrichmentsTableDataStore } from 'pages/resultsView/enrichments/EnrichmentsTableDataStore';
 import { AlterationEnrichmentRow } from 'shared/model/AlterationEnrichmentRow';
+import { CNA_COLOR_AMP, CNA_COLOR_HOMDEL } from 'shared/lib/Colors';
 
 export interface IAlterationEnrichmentTableProps {
     visibleOrderedColumnNames?: string[];
@@ -36,14 +37,11 @@ export enum AlterationEnrichmentTableColumnType {
 }
 
 const cnaToAlteration:{[cna:number]:string} = {
-    "2": "Amplification",
-    "-2": "Deep Deletion"
+    "2": "Amp",
+    "-2": "DeepDel"
 };
 
-export type AlterationEnrichmentTableColumn = Column<AlterationEnrichmentRow> & { order?: number, shouldExclude?: () => boolean };
-
-export class AlterationEnrichmentTableComponent extends LazyMobXTable<AlterationEnrichmentRow> {
-}
+export type AlterationEnrichmentTableColumn = Column<AlterationEnrichmentRow> & { order?: number };
 
 @observer
 export default class AlterationEnrichmentTable extends React.Component<IAlterationEnrichmentTableProps, {}> {
@@ -109,7 +107,7 @@ export default class AlterationEnrichmentTable extends React.Component<IAlterati
 
         columns[AlterationEnrichmentTableColumnType.ALTERATION] = {
             name: "Alteration",
-            render: (d: AlterationEnrichmentRow) => <span>{cnaToAlteration[d.value!]}</span>,
+            render: (d: AlterationEnrichmentRow) => <span style={{ color: d.value! === 2 ? CNA_COLOR_AMP : CNA_COLOR_HOMDEL }}>{cnaToAlteration[d.value!]}</span>,
             tooltip: <span>Copy number alteration</span>,
             filter: (d: AlterationEnrichmentRow, filterString: string, filterStringUpper: string) =>
                 cnaToAlteration[d.value!].toUpperCase().includes(filterStringUpper),
@@ -119,18 +117,18 @@ export default class AlterationEnrichmentTable extends React.Component<IAlterati
 
         columns[AlterationEnrichmentTableColumnType.P_VALUE] = {
             name: "p-Value",
-            render: (d: AlterationEnrichmentRow) => <span style={{whiteSpace: 'nowrap'}}>{toConditionalPrecision(d.pValue, 3, 0.01)}</span>,
-            tooltip: <span>Derived from Fisher's exact test</span>,
-            sortBy: (d: AlterationEnrichmentRow) => d.pValue,
-            download: (d: AlterationEnrichmentRow) => toConditionalPrecision(d.pValue, 3, 0.01)
+            render: (d: AlterationEnrichmentRow) => <span style={{whiteSpace: 'nowrap'}}>{d.pValue ? toConditionalPrecision(d.pValue, 3, 0.01) : '-'}</span>,
+            tooltip: <span>Derived from one-sided Fisher Exact Test</span>,
+            sortBy: (d: AlterationEnrichmentRow) => Number(d.pValue),
+            download: (d: AlterationEnrichmentRow) => d.pValue ? toConditionalPrecision(d.pValue, 3, 0.01) : '-'
         };
 
         columns[AlterationEnrichmentTableColumnType.Q_VALUE] = {
             name: "q-Value",
-            render: (d: AlterationEnrichmentRow) => <span style={{whiteSpace: 'nowrap'}}>{formatSignificanceValueWithStyle(d.qValue)}</span>,
+            render: (d: AlterationEnrichmentRow) => <span style={{whiteSpace: 'nowrap'}}>{d.qValue ? formatSignificanceValueWithStyle(d.qValue) : '-'}</span>,
             tooltip: <span>Derived from Benjamini-Hochberg procedure</span>,
-            sortBy: (d: AlterationEnrichmentRow) => d.qValue,
-            download: (d: AlterationEnrichmentRow) => toConditionalPrecision(d.qValue, 3, 0.01)
+            sortBy: (d: AlterationEnrichmentRow) => Number(d.qValue),
+            download: (d: AlterationEnrichmentRow) => d.qValue ? toConditionalPrecision(d.qValue, 3, 0.01) : '-'
         };
 
         return columns;
@@ -142,7 +140,7 @@ export default class AlterationEnrichmentTable extends React.Component<IAlterati
             (c: AlterationEnrichmentTableColumn) => c.order
         );
         return (
-            <AlterationEnrichmentTableComponent initialItemsPerPage={20} paginationProps={{ itemsPerPageOptions: [20] }}
+            <LazyMobXTable initialItemsPerPage={20} paginationProps={{ itemsPerPageOptions: [20] }}
                 columns={orderedColumns} data={this.props.data} initialSortColumn={this.props.initialSortColumn} 
                 onRowClick={this.props.onGeneNameClick ? this.onRowClick : undefined} dataStore={this.props.dataStore}/>
         );

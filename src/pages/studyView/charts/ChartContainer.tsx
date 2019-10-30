@@ -4,40 +4,40 @@ import {observer} from "mobx-react";
 import {action, computed, observable} from "mobx";
 import _ from "lodash";
 import {ChartControls, ChartHeader} from "pages/studyView/chartHeader/ChartHeader";
-import {
-    StudyViewPageStore
-} from "pages/studyView/StudyViewPageStore";
+import {StudyViewPageStore, SurvivalType} from "pages/studyView/StudyViewPageStore";
 import {DataBin, StudyViewFilter} from "shared/api/generated/CBioPortalAPIInternal";
 import PieChart from "pages/studyView/charts/pieChart/PieChart";
 import classnames from "classnames";
 import ClinicalTable from "pages/studyView/table/ClinicalTable";
 import MobxPromise from "mobxpromise";
 import SurvivalChart, {LegendLocation} from "../../resultsView/survival/SurvivalChart";
-import {MutatedGenesTable} from "../table/MutatedGenesTable";
-import {CNAGenesTable} from "../table/CNAGenesTable";
 import AdmixBarPlot from "./admixture/AdmixBarPlot";
-
 import autobind from 'autobind-decorator';
 import BarChart from "./barChart/BarChart";
-import {CopyNumberGeneFilterElement} from "../../../shared/api/generated/CBioPortalAPIInternal";
 import {
-    AnalysisGroup,
-    ChartMeta, ChartType, ClinicalDataCountWithColor,
+    ChartMeta,
+    ChartType,
+    ClinicalDataCountSummary,
     getHeightByDimension,
     getTableHeightByDimension,
     getWidthByDimension,
     mutationCountVsCnaTooltip,
-    MutationCountVsCnaYBinsMin, SPECIAL_CHARTS, UniqueKey
+    MutationCountVsCnaYBinsMin,
+    UniqueKey,
+    NumericalGroupComparisonType
 } from "../StudyViewUtils";
-import {ClinicalAttribute, ClinicalData} from "../../../shared/api/generated/CBioPortalAPI";
+import {GenePanel} from "../../../shared/api/generated/CBioPortalAPI";
 import {makeSurvivalChartData} from "./survival/StudyViewSurvivalUtils";
 import StudyViewDensityScatterPlot from "./scatterPlot/StudyViewDensityScatterPlot";
-import {ChartTypeEnum, STUDY_VIEW_CONFIG} from "../StudyViewConfig";
+import {ChartDimension, ChartTypeEnum, STUDY_VIEW_CONFIG} from "../StudyViewConfig";
 import LoadingIndicator from "../../../shared/components/loadingIndicator/LoadingIndicator";
-import {getComparisonUrl} from "../../../shared/api/urls";
-import {DownloadControlsButton} from "../../../shared/components/downloadControls/DownloadControls";
+import {DataType, DownloadControlsButton} from "../../../public-lib/components/downloadControls/DownloadControls";
 import {MAX_GROUPS_IN_SESSION} from "../../groupComparison/GroupComparisonUtils";
 import {Modal} from "react-bootstrap";
+import MobxPromiseCache from "shared/lib/MobxPromiseCache";
+import WindowStore from "shared/components/window/WindowStore";
+import Timer = NodeJS.Timer;
+import {GeneTableColumnKey, GeneTable} from "pages/studyView/table/GeneTable";
 
 export interface AbstractChart {
     toSVGDOMNode: () => Element;
@@ -54,6 +54,9 @@ const COMPARISON_CHART_TYPES:ChartType[] = [ChartTypeEnum.PIE_CHART, ChartTypeEn
 
 export interface IChartContainerProps {
     chartMeta: ChartMeta;
+    chartType: ChartType;
+    store: StudyViewPageStore;
+    dimension: ChartDimension;
     title: string;
     promise: MobxPromise<any>;
     filters: any;
@@ -61,7 +64,7 @@ export interface IChartContainerProps {
     setComparisonConfirmationModal:StudyViewPageStore["setComparisonConfirmationModal"];
     onValueSelection?: any;
     onDataBinSelection?: any;
-    getData?:()=>Promise<string|null>;
+    getData?: ((dataType?: DataType)=>Promise<string|null>) | ((dataType?:DataType)=>string);
     downloadTypes?:DownloadControlsButton[];
     onResetSelection?: any;
     onDeleteChart: (chartMeta: ChartMeta) => void;
@@ -70,17 +73,21 @@ export interface IChartContainerProps {
     logScaleChecked?:boolean;
     showLogScaleToggle?:boolean;
     selectedGenes?:any;
+    cancerGenes:number[];
     onGeneSelect?:any;
     isNewlyAdded: (uniqueKey: string) => boolean;
-
+    cancerGeneFilterEnabled: boolean;
+    filterByCancerGenes?: boolean;
+    onChangeCancerGeneFilter?: (filtered: boolean) => void;
     openComparisonPage:(params:{
         chartMeta: ChartMeta,
+        categorizationType?: NumericalGroupComparisonType,
         clinicalAttributeValues?:{ value:string, color:string }[]
     })=>void;
     analysisGroupsSettings:StudyViewPageStore["analysisGroupsSettings"];
-    patientKeysWithNAInSelectedClinicalData?:MobxPromise<string[]>; // patients which have NA values for filtered clinical attributes
     patientToAnalysisGroup?:MobxPromise<{[uniquePatientKey:string]:string}>;
     sampleToAnalysisGroup?:MobxPromise<{[uniqueSampleKey:string]:string}>;
+    genePanelCache: MobxPromiseCache<{ genePanelId: string }, GenePanel>;
 }
 
 @observer
@@ -90,17 +97,18 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
     private handlers: any;
     private plot: AbstractChart;
 
+    private mouseLeaveTimeout:Timer;
+
     @observable mouseInChart: boolean = false;
     @observable placement: 'left' | 'right' = 'right';
     @observable chartType: ChartType;
 
     @observable newlyAdded = false;
-    @observable naPatientsHiddenInSurvival = true; // only relevant for survival charts - whether cases with NA clinical value are shown
 
     constructor(props: IChartContainerProps) {
         super(props);
 
-        this.chartType = this.props.chartMeta.chartType;
+        this.chartType = this.props.chartType;
 
         this.handlers = {
             ref: (plot: AbstractChart) => {
@@ -120,19 +128,18 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                     this.props.onToggleLogScale(this.props.chartMeta);
                 }
             }),
-            updateCNAGeneFilters: action((filters: CopyNumberGeneFilterElement[]) => {
-                this.props.onValueSelection(filters);
-            }),
-            updateGeneFilters: action((value: number[]) => {
-                this.props.onValueSelection(value);
-            }),
             onMouseEnterChart: action((event: React.MouseEvent<any>) => {
-                this.placement = event.nativeEvent.x > 800 ? 'left' : 'right';
+                if (this.mouseLeaveTimeout) {
+                    clearTimeout(this.mouseLeaveTimeout);
+                }
+                this.placement = event.nativeEvent.x > WindowStore.size.width - 400 ? 'left' : 'right';
                 this.mouseInChart = true;
             }),
             onMouseLeaveChart: action(() => {
-                this.placement = 'right'
-                this.mouseInChart = false;
+                this.mouseLeaveTimeout = setTimeout(() => {
+                    this.placement = 'right';
+                    this.mouseInChart = false;
+                }, 100);
             }),
             defaultDownload: {
                 SVG: () => Promise.resolve((new XMLSerializer()).serializeToString(this.toSVGDOMNode())),
@@ -201,28 +208,22 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
 
         return validChart &&
             this.props.promise.isComplete &&
-                this.props.promise.result!.length > 1 &&
-                (COMPARISON_CHART_TYPES.indexOf(this.props.chartMeta.chartType) > -1);
+            this.props.promise.result!.length > 1 &&
+            (COMPARISON_CHART_TYPES.indexOf(this.props.chartType) > -1);
     }
 
     @autobind
     @action
-    toggleSurvivalHideNAPatients() {
-        this.naPatientsHiddenInSurvival = !this.naPatientsHiddenInSurvival;
-    }
-
-    @autobind
-    @action
-    openComparisonPage() {
+    openComparisonPage(categorizationType?:NumericalGroupComparisonType) {
         if (this.comparisonPagePossible) {
-            switch (this.props.chartMeta.chartType) {
+            switch (this.props.chartType) {
                 case ChartTypeEnum.PIE_CHART:
                 case ChartTypeEnum.TABLE:
                     const openComparison = ()=>this.props.openComparisonPage({
                         chartMeta: this.props.chartMeta,
-                        clinicalAttributeValues:(this.props.promise.result! as ClinicalDataCountWithColor[]),
+                        clinicalAttributeValues:(this.props.promise.result! as ClinicalDataCountSummary[]),
                     });
-                    const values = (this.props.promise.result! as ClinicalDataCountWithColor[]);
+                    const values = (this.props.promise.result! as ClinicalDataCountSummary[]);
                     if (values.length > MAX_GROUPS_IN_SESSION) {
                         this.props.setComparisonConfirmationModal((hideModal)=>{
                             return (
@@ -250,6 +251,7 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                 case ChartTypeEnum.BAR_CHART:
                     this.props.openComparisonPage({
                         chartMeta: this.props.chartMeta,
+                        categorizationType
                     });
                     break;
             }
@@ -259,17 +261,13 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
     @computed get survivalChartData() {
         // need to put this in @computed instead of a remoteData, because in a remoteData any changes to props trigger
         //   a rerender with delay
-        if (this.props.promise.isComplete && this.props.patientToAnalysisGroup && this.props.patientToAnalysisGroup.isComplete &&
-            (!this.props.patientKeysWithNAInSelectedClinicalData || this.props.patientKeysWithNAInSelectedClinicalData.isComplete)) {
-            const survivalData = _.find(this.props.promise.result!, (survivalPlot) => {
+        if (this.props.promise.isComplete && this.props.patientToAnalysisGroup && this.props.patientToAnalysisGroup.isComplete) {
+            const survival:SurvivalType = _.find(this.props.promise.result!, (survivalPlot) => {
                 return survivalPlot.id === this.props.chartMeta.uniqueKey;
             });
-            return makeSurvivalChartData(
-                survivalData.alteredGroup.concat(survivalData.unalteredGroup),
+            return  makeSurvivalChartData(survival.survivalData,
                 this.props.analysisGroupsSettings.groups,
-                this.props.patientToAnalysisGroup!.result!,
-                this.naPatientsHiddenInSurvival,
-                this.props.patientKeysWithNAInSelectedClinicalData && this.props.patientKeysWithNAInSelectedClinicalData.result!,
+                this.props.patientToAnalysisGroup!.result!
             );
         } else {
             return undefined;
@@ -288,11 +286,12 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
 
     @computed
     get chart() {
+        const {BAR_CHART, SURVIVAL, CNA_GENES_TABLE, TABLE, SCATTER, PIE_CHART, MUTATED_GENES_TABLE, FUSION_GENES_TABLE} = ChartTypeEnum;
         switch (this.chartType) {
-            case ChartTypeEnum.PIE_CHART: {
+            case PIE_CHART: {
                 return ()=>(<PieChart
-                    width={getWidthByDimension(this.props.chartMeta.dimension, this.borderWidth)}
-                    height={getHeightByDimension(this.props.chartMeta.dimension, this.chartHeaderHeight)}
+                    width={getWidthByDimension(this.props.dimension, this.borderWidth)}
+                    height={getHeightByDimension(this.props.dimension, this.chartHeaderHeight)}
                     ref={this.handlers.ref}
                     onUserSelection={this.handlers.onValueSelection}
                     filters={this.props.filters}
@@ -303,11 +302,11 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                     patientAttribute={this.props.chartMeta.patientAttribute}
                 />);
             }
-            case ChartTypeEnum.BAR_CHART: {
+            case BAR_CHART: {
                 return ()=>(
                     <BarChart
-                        width={getWidthByDimension(this.props.chartMeta.dimension, this.borderWidth)}
-                        height={getHeightByDimension(this.props.chartMeta.dimension, this.chartHeaderHeight)}
+                        width={getWidthByDimension(this.props.dimension, this.borderWidth)}
+                        height={getHeightByDimension(this.props.dimension, this.chartHeaderHeight)}
                         ref={this.handlers.ref}
                         onUserSelection={this.handlers.onDataBinSelection}
                         filters={this.props.filters}
@@ -315,11 +314,11 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                     />
                 );
             }
-            case ChartTypeEnum.TABLE: {
+            case TABLE: {
                 return ()=>(<ClinicalTable
                     data={this.props.promise.result}
-                    width={getWidthByDimension(this.props.chartMeta.dimension, this.borderWidth)}
-                    height={getTableHeightByDimension(this.props.chartMeta.dimension, this.chartHeaderHeight)}
+                    width={getWidthByDimension(this.props.dimension, this.borderWidth)}
+                    height={getTableHeightByDimension(this.props.dimension, this.chartHeaderHeight)}
                     filters={this.props.filters}
                     onUserSelection={this.handlers.onValueSelection}
                     labelDescription={this.props.chartMeta.description}
@@ -327,35 +326,87 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                     showAddRemoveAllButtons={this.mouseInChart}
                 />);
             }
-            case ChartTypeEnum.MUTATED_GENES_TABLE: {
+            case MUTATED_GENES_TABLE: {
                 return ()=>(
-                    <MutatedGenesTable
+                    <GeneTable
+                        tableType={'mutation'}
                         promise={this.props.promise}
-                        width={getWidthByDimension(this.props.chartMeta.dimension, this.borderWidth)}
-                        height={getTableHeightByDimension(this.props.chartMeta.dimension, this.chartHeaderHeight)}
+                        width={getWidthByDimension(this.props.dimension, this.borderWidth)}
+                        height={getTableHeightByDimension(this.props.dimension, this.chartHeaderHeight)}
                         numOfSelectedSamples={100}
                         filters={this.props.filters}
-                        onUserSelection={this.handlers.updateGeneFilters}
+                        onUserSelection={this.props.onValueSelection}
                         onGeneSelect={this.props.onGeneSelect}
                         selectedGenes={this.props.selectedGenes}
+                        genePanelCache={this.props.genePanelCache}
+                        cancerGeneFilterEnabled={this.props.cancerGeneFilterEnabled}
+                        filterByCancerGenes={this.props.filterByCancerGenes!}
+                        onChangeCancerGeneFilter={this.props.onChangeCancerGeneFilter!}
+                        columns={[
+                            {columnKey: GeneTableColumnKey.GENE},
+                            {columnKey: GeneTableColumnKey.NUMBER_MUTATIONS},
+                            {columnKey: GeneTableColumnKey.NUMBER},
+                            {columnKey: GeneTableColumnKey.FREQ},
+                        ]}
+
+                        defaultSortBy={GeneTableColumnKey.FREQ}
                     />
                 );
             }
-            case ChartTypeEnum.CNA_GENES_TABLE: {
-                return ()=>(
-                    <CNAGenesTable
+            case FUSION_GENES_TABLE: {
+                return () => (
+                    <GeneTable
+                        tableType={'fusion'}
                         promise={this.props.promise}
-                        width={getWidthByDimension(this.props.chartMeta.dimension, this.borderWidth)}
-                        height={getTableHeightByDimension(this.props.chartMeta.dimension, this.chartHeaderHeight)}
+                        width={getWidthByDimension(this.props.dimension, this.borderWidth)}
+                        height={getTableHeightByDimension(this.props.dimension, this.chartHeaderHeight)}
                         numOfSelectedSamples={100}
                         filters={this.props.filters}
-                        onUserSelection={this.handlers.updateCNAGeneFilters}
+                        onUserSelection={this.props.onValueSelection}
                         onGeneSelect={this.props.onGeneSelect}
                         selectedGenes={this.props.selectedGenes}
+                        genePanelCache={this.props.genePanelCache}
+                        cancerGeneFilterEnabled={this.props.cancerGeneFilterEnabled}
+                        filterByCancerGenes={this.props.filterByCancerGenes!}
+                        onChangeCancerGeneFilter={this.props.onChangeCancerGeneFilter!}
+                        columns={[
+                            {columnKey: GeneTableColumnKey.GENE},
+                            {columnKey: GeneTableColumnKey.NUMBER_FUSIONS},
+                            {columnKey: GeneTableColumnKey.NUMBER},
+                            {columnKey: GeneTableColumnKey.FREQ},
+                        ]}
+                        defaultSortBy={GeneTableColumnKey.FREQ}
                     />
                 );
             }
-            case ChartTypeEnum.SURVIVAL: {
+            case CNA_GENES_TABLE: {
+                return ()=>(
+                    <GeneTable
+                        tableType={'cna'}
+                        promise={this.props.promise}
+                        width={getWidthByDimension(this.props.dimension, this.borderWidth)}
+                        height={getTableHeightByDimension(this.props.dimension, this.chartHeaderHeight)}
+                        numOfSelectedSamples={100}
+                        filters={this.props.filters}
+                        onUserSelection={this.props.onValueSelection}
+                        onGeneSelect={this.props.onGeneSelect}
+                        selectedGenes={this.props.selectedGenes}
+                        genePanelCache={this.props.genePanelCache}
+                        cancerGeneFilterEnabled={this.props.cancerGeneFilterEnabled}
+                        filterByCancerGenes={this.props.filterByCancerGenes!}
+                        onChangeCancerGeneFilter={this.props.onChangeCancerGeneFilter!}
+                        columns={[
+                            {columnKey: GeneTableColumnKey.GENE, columnWidthRatio: 0.25},
+                            {columnKey: GeneTableColumnKey.CYTOBAND, columnWidthRatio: 0.25},
+                            {columnKey: GeneTableColumnKey.CNA, columnWidthRatio: 0.14},
+                            {columnKey: GeneTableColumnKey.NUMBER, columnWidthRatio: 0.18},
+                            {columnKey: GeneTableColumnKey.FREQ, columnWidthRatio: 0.18}
+                        ]}
+                        defaultSortBy={GeneTableColumnKey.FREQ}
+                    />
+                );
+            }
+            case SURVIVAL: {
                 if (this.survivalChartData) {
                     const data = this.survivalChartData;
                     return ()=>(
@@ -363,9 +414,6 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                                        patientSurvivals={data.patientSurvivals}
                                        patientToAnalysisGroups={data.patientToAnalysisGroups}
                                        analysisGroups={data.analysisGroups}
-                                       naPatientsHiddenInSurvival={this.naPatientsHiddenInSurvival}
-                                       showNaPatientsHiddenToggle={this.props.patientKeysWithNAInSelectedClinicalData!.result!.length > 0}
-                                       toggleSurvivalHideNAPatients={this.toggleSurvivalHideNAPatients}
                                        legendLocation={LegendLocation.TOOLTIP}
                                        title={this.props.title}
                                        xAxisLabel="Months Survival"
@@ -380,12 +428,12 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                                        disableZoom={true}
                                        showTable={false}
                                        styleOpts={{
-                                           width: getWidthByDimension(this.props.chartMeta.dimension, this.borderWidth),
-                                           height: getHeightByDimension(this.props.chartMeta.dimension, this.chartHeaderHeight),
+                                           width: getWidthByDimension(this.props.dimension, this.borderWidth),
+                                           height: getHeightByDimension(this.props.dimension, this.chartHeaderHeight),
                                            tooltipXOffset:10,
                                            tooltipYOffset:-58,
                                            pValue: {
-                                               x:getWidthByDimension(this.props.chartMeta.dimension, this.borderWidth)-10,
+                                               x:getWidthByDimension(this.props.dimension, this.borderWidth)-10,
                                                y:30,
                                                textAnchor:"end"
                                            },
@@ -397,23 +445,23 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                                                }
                                            }
                                        }}
-                                       fileName="Overall_Survival"
+                                       fileName={this.props.title.replace(' ', '_')}
                         />
                     );
                 } else {
                     return null;
                 }
             }
-            case ChartTypeEnum.SCATTER: {
+            case SCATTER: {
                 return ()=>(
-                    <div style={{overflow:"hidden", height:getHeightByDimension(this.props.chartMeta.dimension, this.chartHeaderHeight)}}>
+                    <div style={{overflow:"hidden", height:getHeightByDimension(this.props.dimension, this.chartHeaderHeight)}}>
                         {/* have to do all this weird positioning to decrease gap btwn chart and title, bc I cant do it from within Victory */}
                         {/* overflow: "hidden" because otherwise the large SVG (I have to make it larger to make the plot large enough to
                             decrease the gap) will cover the header controls and make them unclickable */}
                         <div style={{marginTop:-33}}>
                             <StudyViewDensityScatterPlot
                                 ref={this.handlers.ref}
-                                width={getWidthByDimension(this.props.chartMeta.dimension, this.borderWidth)}
+                                width={getWidthByDimension(this.props.dimension, this.borderWidth)}
                                 height={this.getScatterPlotHeight()}
                                 yBinsMin={MutationCountVsCnaYBinsMin}
                                 onSelection={this.props.onValueSelection}
@@ -464,8 +512,8 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
     }
 
     componentWillReceiveProps(nextProps: Readonly<IChartContainerProps>, nextContext: any): void {
-        if (nextProps.chartMeta.chartType !== this.chartType) {
-            this.chartType = nextProps.chartMeta.chartType;
+        if (nextProps.chartType !== this.chartType) {
+            this.chartType = nextProps.chartType;
         }
     }
 
@@ -478,6 +526,8 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                 <ChartHeader
                     height={this.chartHeaderHeight}
                     chartMeta={this.props.chartMeta}
+                    chartType={this.props.chartType}
+                    store={this.props.store}
                     title={this.props.title}
                     active={this.mouseInChart}
                     resetChart={this.handlers.resetFilters}
@@ -489,6 +539,7 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                     getData={this.props.getData}
                     downloadTypes={this.props.downloadTypes}
                     openComparisonPage={this.openComparisonPage}
+                    placement={this.placement}
                 />
                 <div style={{display: 'flex', flexGrow: 1, margin: 'auto', alignItems: 'center'}}>
                     {(this.props.promise.isPending) && (

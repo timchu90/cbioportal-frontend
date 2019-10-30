@@ -5,12 +5,13 @@ import CBIOPORTAL_VICTORY_THEME from 'shared/theme/cBioPoralTheme';
 import _ from "lodash";
 import {action, computed, observable} from 'mobx';
 import {ComparisonGroup} from './GroupComparisonUtils';
-import VennSimple from "./VennSimple";
+import RectangleVennDiagram from "./rectangleVennDiagram/RectangleVennDiagram";
 import CreateGroupFromOverlap from "./CreateGroupFromOverlap";
 import GroupComparisonStore from "./GroupComparisonStore";
 import autobind from "autobind-decorator";
 import {SessionGroupData} from "../../shared/api/ComparisonGroupClient";
-import {truncateWithEllipsis} from "../../shared/lib/wrapText";
+import {truncateWithEllipsis} from "../../public-lib/lib/TextTruncationUtils";
+import {GroupLegendLabelComponent} from "./labelComponents/GroupLegendLabelComponent";
 
 export interface IVennProps {
     svgId?: string;
@@ -24,6 +25,7 @@ export interface IVennProps {
     }[];
     uidToGroup: { [uid: string]: ComparisonGroup };
     store:GroupComparisonStore;
+    onLayoutFailure:()=>void;
 }
 
 const VENN_PLOT_WIDTH = 400;
@@ -53,14 +55,14 @@ export default class Venn extends React.Component<IVennProps, {}> {
     @autobind
     @action
     private submitSampleOverlapGroup(group:SessionGroupData, saveToUser:boolean) {
-        this.props.store.addUnsavedGroup(group, saveToUser);
+        this.props.store.addGroup(group, saveToUser);
         this.sampleSelection.regions = [];
     }
 
     @autobind
     @action
     private submitPatientOverlapGroup(group:SessionGroupData, saveToUser:boolean) {
-        this.props.store.addUnsavedGroup(group, saveToUser);
+        this.props.store.addGroup(group, saveToUser);
         this.patientSelection.regions = [];
     }
 
@@ -87,7 +89,7 @@ export default class Venn extends React.Component<IVennProps, {}> {
     @computed get legendData() {
         return this.props.sampleGroups.map(sampleGroup=>{
             return {
-                name: truncateWithEllipsis(this.props.uidToGroup[sampleGroup.uid].nameWithOrdinal, 100, "Arial", "13px"),
+                name: sampleGroup.uid,
                 symbol: { fill: this.props.uidToGroup[sampleGroup.uid].color, strokeOpacity:0, type:"square", size: 6 }
             }
         });
@@ -133,7 +135,7 @@ export default class Venn extends React.Component<IVennProps, {}> {
                         y="1.2em"
                         text={'Samples overlap'}
                     />
-                    <VennSimple
+                    <RectangleVennDiagram
                         uid="samples"
                         x={0}
                         y={15}
@@ -144,6 +146,7 @@ export default class Venn extends React.Component<IVennProps, {}> {
                         selection={this.sampleSelection}
                         onChangeSelectedRegions={this.changeSelectedSampleRegions}
                         caseType="sample"
+                        onLayoutFailure={this.props.onLayoutFailure}
                     />
 
                     <VictoryLabel
@@ -159,7 +162,7 @@ export default class Venn extends React.Component<IVennProps, {}> {
                         text={'Patients overlap'}
                     />
 
-                    <VennSimple
+                    <RectangleVennDiagram
                         uid="patients"
                         x={VENN_PLOT_WIDTH+PADDING_BTWN_SAMPLE_AND_PATIENT}
                         y={15}
@@ -170,6 +173,7 @@ export default class Venn extends React.Component<IVennProps, {}> {
                         selection={this.patientSelection}
                         onChangeSelectedRegions={this.changeSelectedPatientRegions}
                         caseType="patient"
+                        onLayoutFailure={this.props.onLayoutFailure}
                     />
 
                     {this.legendData.length > 0 && (
@@ -177,6 +181,13 @@ export default class Venn extends React.Component<IVennProps, {}> {
                             x={this.vennPlotAreaWidth + PADDING_BTWN_VENN_AND_LEGEND}
                             y={100}
                             theme={CBIOPORTAL_VICTORY_THEME}
+                            labelComponent={
+                                <GroupLegendLabelComponent
+                                    maxLabelWidth={100}
+                                    uidToGroup={this.props.uidToGroup}
+                                    dy="0.4em"
+                                />
+                            }
                             standalone={false}
                             data={this.legendData}
                         />
@@ -185,20 +196,26 @@ export default class Venn extends React.Component<IVennProps, {}> {
                 <CreateGroupFromOverlap
                     store={this.props.store}
                     includedRegions={this.sampleSelectedRegionsUids}
-                    x={0}
-                    y={VENN_PLOT_HEIGHT + 20}
+                    style={{
+                        position:"absolute",
+                        left:0,
+                        top:VENN_PLOT_HEIGHT + 20
+                    }}
                     submitGroup={this.submitSampleOverlapGroup}
-                    allGroupsInVenn={this.sampleGroupUids}
+                    allGroupsInPlot={this.sampleGroupUids}
                     caseType="sample"
                     width={VENN_PLOT_WIDTH}
                 />
                 <CreateGroupFromOverlap
                     store={this.props.store}
                     includedRegions={this.patientSelectedRegionsUids}
-                    x={VENN_PLOT_WIDTH + PADDING_BTWN_SAMPLE_AND_PATIENT}
-                    y={VENN_PLOT_HEIGHT + 20}
+                    style={{
+                        position:"absolute",
+                        left:VENN_PLOT_WIDTH + PADDING_BTWN_SAMPLE_AND_PATIENT,
+                        top:VENN_PLOT_HEIGHT + 20
+                    }}
                     submitGroup={this.submitPatientOverlapGroup}
-                    allGroupsInVenn={this.patientGroupUids}
+                    allGroupsInPlot={this.patientGroupUids}
                     caseType="patient"
                     width={VENN_PLOT_WIDTH}
                 />

@@ -8,7 +8,7 @@ import LoadingIndicator from "shared/components/loadingIndicator/LoadingIndicato
 import {SimpleGetterLazyMobXTableApplicationDataStore} from "../../../shared/lib/ILazyMobXTableApplicationDataStore";
 import {logScalePossibleForProfile} from "../plots/PlotsTabUtils";
 import CoExpressionPlot, {ICoExpressionPlotProps} from "./CoExpressionPlot";
-import {remoteData} from "../../../shared/api/remoteData";
+import {remoteData} from "../../../public-lib/api/remoteData";
 import {MobxPromise} from "mobxpromise";
 import {computePlotData, requestAllDataMessage} from "./CoExpressionVizUtils";
 import {Button} from "react-bootstrap";
@@ -183,7 +183,7 @@ export default class CoExpressionViz extends React.Component<ICoExpressionVizPro
         };
 
         if (yAxisCoExpression) {
-            ret.molecularY = this.props.profileY.molecularAlterationType === AlterationTypeConstants.GENESET_SCORE ? 
+            ret.molecularY = this.props.profileY.molecularAlterationType === AlterationTypeConstants.GENESET_SCORE ?
             this.props.numericGenesetMolecularDataCache.get({
                 genesetId: yAxisCoExpression.geneticEntityId,
                 molecularProfileId: this.props.profileY.molecularProfileId
@@ -202,7 +202,7 @@ export default class CoExpressionViz extends React.Component<ICoExpressionVizPro
 
         return ret;
     }
-    
+
     readonly plotData = remoteData({
         await:()=>{
             if (this.props.hidden)
@@ -253,7 +253,7 @@ export default class CoExpressionViz extends React.Component<ICoExpressionVizPro
                 numericGeneMolecularData,
                 mutations,
                 this.props.geneticEntity.geneticEntityId,
-                isNaN(Number(this.highlightedCoExpression.geneticEntityId))? 
+                isNaN(Number(this.highlightedCoExpression.geneticEntityId))?
                     this.highlightedCoExpression.geneticEntityId :
                     Number(this.highlightedCoExpression.geneticEntityId),
                 this.props.geneticEntity.geneticEntityName,
@@ -337,7 +337,7 @@ export default class CoExpressionViz extends React.Component<ICoExpressionVizPro
             //Create a GeneticEntity object based on this.highlightedCoExpression
             let yGeneticEntity: GeneticEntity;
             if (this.highlightedCoExpression) {
-                const emptyGeneEntityData: Gene = {chromosome:'', cytoband: '', entrezGeneId: 0, hugoGeneSymbol: '', length: 0, type: ''};
+                const emptyGeneEntityData: Gene = {geneticEntityId:0,entrezGeneId: 0, hugoGeneSymbol: '', type: ''};
                 yGeneticEntity = {geneticEntityName: this.highlightedCoExpression.geneticEntityName,
                     geneticEntityType: this.highlightedCoExpression.geneticEntityType,
                     geneticEntityId: this.highlightedCoExpression.geneticEntityId,
@@ -393,16 +393,27 @@ export default class CoExpressionViz extends React.Component<ICoExpressionVizPro
                 data-test="CoExpressionGeneTabContent"
             >
                 <div className="clearfix">
-                    <div style={{width:"40%", float:"left", marginTop:6}}>
-                        <Observer>
-                            {this.table}
-                        </Observer>
-                    </div>
-                    <div style={{width:"60%", float:"right", marginTop:6 /*align with table controls*/}}>
-                        <Observer>
-                            {this.plot}
-                        </Observer>
-                    </div>
+                    { this.dataStore.allData.length > 0 ? [
+                        <div style={{width:"40%", float:"left", marginTop:6}}>
+                            <Observer>
+                                {this.table}
+                            </Observer>
+                        </div>,
+                        <div style={{width:"60%", float:"right", marginTop:6 /*align with table controls*/}}>
+                            <Observer>
+                                {this.plot}
+                            </Observer>
+                        </div>
+                    ] : (
+                        <div style={{
+                            position:"absolute",
+                            top:200,
+                            left:"50%",
+                            transform:"translate(-50%, 0)"
+                        }}>
+                            There is no expression data for <strong>{this.props.geneticEntity.geneticEntityName}</strong> with the selected samples in <strong>{this.props.profileX.name}</strong>.
+                        </div>
+                    )}
                 </div>
             </div>
         );

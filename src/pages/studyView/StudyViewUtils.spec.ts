@@ -5,6 +5,7 @@ import {
     calculateNewLayoutForFocusedChart,
     chartMetaComparator,
     clinicalDataCountComparator,
+    customBinsAreValid,
     filterCategoryBins,
     filterIntervalBins,
     filterNumericalBins,
@@ -38,6 +39,7 @@ import {
     isLogScaleByValues,
     isOccupied,
     makePatientToClinicalAnalysisGroup,
+    mutationCountVsCnaTooltip,
     needAdditionShiftForLogScaleBarChart,
     pickClinicalDataColors,
     showOriginStudiesInSummaryDescription,
@@ -47,7 +49,10 @@ import {
     StudyViewFilterWithSampleIdentifierFilters,
     ChartMeta,
     ChartMetaDataTypeEnum,
-    getStudyViewTabId
+    getStudyViewTabId,
+    formatRange,
+    getBinName,
+    getGroupedClinicalDataByBins,
 } from 'pages/studyView/StudyViewUtils';
 import {
     ClinicalDataIntervalFilterValue,
@@ -66,9 +71,11 @@ import {Layout} from 'react-grid-layout';
 import sinon from 'sinon';
 import internalClient from 'shared/api/cbioportalInternalClientInstance';
 import {VirtualStudy} from 'shared/model/VirtualStudy';
-import {ChartTypeEnum} from "./StudyViewConfig";
+import {ChartDimension, ChartTypeEnum} from "./StudyViewConfig";
 import {MobxPromise} from "mobxpromise";
-import {DEFAULT_NA_COLOR, RESERVED_CLINICAL_VALUE_COLORS} from "shared/lib/Colors";
+import {CLI_NO_COLOR, CLI_YES_COLOR, DEFAULT_NA_COLOR, RESERVED_CLINICAL_VALUE_COLORS} from "shared/lib/Colors";
+import { IStudyViewDensityScatterPlotDatum } from './charts/scatterPlot/StudyViewDensityScatterPlot';
+import { shallow } from 'enzyme';
 
 describe('StudyViewUtils', () => {
     const emptyStudyViewFilter: StudyViewFilter = {
@@ -147,6 +154,7 @@ describe('StudyViewUtils', () => {
                     }]
                 }],
                 mutatedGenes: [{ "entrezGeneIds": [1] }],
+                fusionGenes: [{ "entrezGeneIds": [1] }],
                 cnaGenes: [{ "alterations": [{ "entrezGeneId": 2, "alteration": -2 }] }],
                 studyIds: ['study1', 'study2'],
                 sampleIdentifiers: [],
@@ -181,8 +189,8 @@ describe('StudyViewUtils', () => {
                     },
                     genes
                 ).startsWith('4 samples from 2 studies:\n- Study 1 (2 samples)\n- Study 2 (2 samples)\n\nFilters:\n- CNA Genes:\n' +
-                '  - GENE2-DEL\n- Mutated Genes:\n  - GENE1\nWith Mutation data: NO\nWith CNA data: NO\n- attribute1 name: value1\n' +
-                '- attribute2 name: 10 < x ≤ 0\n- attribute3 name: 2 samples\n\nCreated on'));                   
+                '  - GENE2-DEL\n- Mutated Genes:\n  - GENE1\n- Fusion Genes:\n  - GENE1\nWith Mutation data: NO\nWith CNA data: NO\n- attribute1 name: value1\n' +
+                '- attribute2 name: 10 < x ≤ 0\n- attribute3 name: 2 samples\n\nCreated on'));
         });
         it('when username is not null', () => {
             assert.isTrue(
@@ -778,7 +786,7 @@ describe('StudyViewUtils', () => {
 
             const needAdditionShift = needAdditionShiftForLogScaleBarChart(numericalBins);
             assert.isFalse(needAdditionShift);
-            
+
             const normalizedNumericalData = generateNumericalData(numericalBins);
             assert.deepEqual(normalizedNumericalData.map(data => data.x),
                 [1.5, 2.5, 3.5, 5]);
@@ -1310,6 +1318,7 @@ describe('StudyViewUtils', () => {
 
     describe("calculateLayout", () => {
         let visibleAttrs: ChartMeta[] = [];
+        let visibleAttrsChartDimensions: { [id: string]: ChartDimension } = {};
         const clinicalAttr: ClinicalAttribute = {
             'clinicalAttributeId': 'test',
             'datatype': 'STRING',
@@ -1320,28 +1329,28 @@ describe('StudyViewUtils', () => {
             'studyId': ''
         };
         for (let i = 0; i < 8; i++) {
+            const uniqueKey = 'test' + i;
             visibleAttrs.push({
                 clinicalAttribute: clinicalAttr,
                 displayName: clinicalAttr.displayName,
                 description: clinicalAttr.description,
-                uniqueKey: 'test' + i,
+                uniqueKey: uniqueKey,
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                chartType: ChartTypeEnum.PIE_CHART,
-                dimension: {w: 1, h: 1},
                 renderWhenDataChange: false,
                 priority: 1,
             });
+            visibleAttrsChartDimensions[uniqueKey] = {w: 1, h: 1};
         }
 
         it("Empty array should be returned when no attributes given", () => {
-            let layout: Layout[] = calculateLayout([], 6);
+            let layout: Layout[] = calculateLayout([], 6, visibleAttrsChartDimensions, []);
             assert.isArray(layout);
             assert.equal(layout.length, 0);
         });
 
         it("The layout is not expected - 1", () => {
-            let layout: Layout[] = calculateLayout(visibleAttrs, 6);
+            let layout: Layout[] = calculateLayout(visibleAttrs, 6, visibleAttrsChartDimensions, []);
             assert.equal(layout.length, 8);
             assert.equal(layout[0].i, 'test0');
             assert.equal(layout[0].x, 0);
@@ -1370,7 +1379,7 @@ describe('StudyViewUtils', () => {
         });
 
         it("The layout is not expected - 2", () => {
-            let layout: Layout[] = calculateLayout(visibleAttrs, 2);
+            let layout: Layout[] = calculateLayout(visibleAttrs, 2, visibleAttrsChartDimensions, []);
             assert.equal(layout.length, 8);
             assert.equal(layout[0].i, 'test0');
             assert.equal(layout[0].x, 0);
@@ -1399,6 +1408,7 @@ describe('StudyViewUtils', () => {
         });
 
         it("Higher priority chart should be displayed first", () => {
+            let visibleAttrsChartDimensions: { [id: string]: ChartDimension } = {};
             visibleAttrs = [{
                 clinicalAttribute: clinicalAttr,
                 displayName: clinicalAttr.displayName,
@@ -1406,8 +1416,6 @@ describe('StudyViewUtils', () => {
                 uniqueKey: 'test0',
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                chartType: ChartTypeEnum.TABLE,
-                dimension: {w: 2, h: 2},
                 renderWhenDataChange: true,
                 priority: 10,
             }, {
@@ -1415,15 +1423,15 @@ describe('StudyViewUtils', () => {
                 displayName: clinicalAttr.displayName,
                 description: clinicalAttr.description,
                 uniqueKey: 'test1',
-                chartType: ChartTypeEnum.PIE_CHART,
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                dimension: {w: 1, h: 1},
                 renderWhenDataChange: false,
                 priority: 20,
             }];
+            visibleAttrsChartDimensions['test0'] = {w: 2, h: 2};
+            visibleAttrsChartDimensions['test1'] = {w: 1, h: 1};
 
-            let layout: Layout[] = calculateLayout(visibleAttrs, 4);
+            let layout: Layout[] = calculateLayout(visibleAttrs, 4, visibleAttrsChartDimensions, []);
             assert.equal(layout.length, 2);
             assert.equal(layout[0].i, 'test1');
             assert.equal(layout[0].x, 0);
@@ -1435,15 +1443,14 @@ describe('StudyViewUtils', () => {
         });
 
         it("The lower priority chart should occupy the empty space first", () => {
+            let visibleAttrsChartDimensions: { [id: string]: ChartDimension } = {};
             visibleAttrs = [{
                 clinicalAttribute: clinicalAttr,
                 displayName: clinicalAttr.displayName,
                 description: clinicalAttr.description,
                 uniqueKey: 'test0',
-                chartType: ChartTypeEnum.BAR_CHART,
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                dimension: {w: 2, h: 1},
                 renderWhenDataChange: false,
                 priority: 10,
             }, {
@@ -1451,10 +1458,8 @@ describe('StudyViewUtils', () => {
                 displayName: clinicalAttr.displayName,
                 description: clinicalAttr.description,
                 uniqueKey: 'test1',
-                chartType: ChartTypeEnum.TABLE,
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                dimension: {w: 2, h: 2},
                 renderWhenDataChange: true,
                 priority: 5,
             }, {
@@ -1462,15 +1467,16 @@ describe('StudyViewUtils', () => {
                 displayName: clinicalAttr.displayName,
                 description: clinicalAttr.description,
                 uniqueKey: 'test2',
-                chartType: ChartTypeEnum.PIE_CHART,
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                dimension: {w: 1, h: 1},
                 renderWhenDataChange: false,
                 priority: 2,
             }];
+            visibleAttrsChartDimensions['test0'] = {w: 2, h: 1};
+            visibleAttrsChartDimensions['test1'] = {w: 2, h: 2};
+            visibleAttrsChartDimensions['test2'] = {w: 1, h: 1};
 
-            let layout: Layout[] = calculateLayout(visibleAttrs, 4);
+            let layout: Layout[] = calculateLayout(visibleAttrs, 4, visibleAttrsChartDimensions, []);
             assert.equal(layout.length, 3);
             assert.equal(layout[0].i, 'test0');
             assert.equal(layout[0].x, 0);
@@ -1487,15 +1493,14 @@ describe('StudyViewUtils', () => {
         });
 
         it("The chart should utilize the horizontal space in the last row", () => {
+            let visibleAttrsChartDimensions: { [id: string]: ChartDimension } = {};
             visibleAttrs = [{
                 clinicalAttribute: clinicalAttr,
                 displayName: clinicalAttr.displayName,
                 description: clinicalAttr.description,
                 uniqueKey: 'test0',
-                chartType: ChartTypeEnum.BAR_CHART,
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                dimension: {w: 2, h: 2},
                 renderWhenDataChange: false,
                 priority: 1,
             }, {
@@ -1503,10 +1508,8 @@ describe('StudyViewUtils', () => {
                 displayName: clinicalAttr.displayName,
                 description: clinicalAttr.description,
                 uniqueKey: 'test1',
-                chartType: ChartTypeEnum.TABLE,
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                dimension: {w: 2, h: 2},
                 renderWhenDataChange: true,
                 priority: 1,
             }, {
@@ -1514,10 +1517,8 @@ describe('StudyViewUtils', () => {
                 displayName: clinicalAttr.displayName,
                 description: clinicalAttr.description,
                 uniqueKey: 'test2',
-                chartType: ChartTypeEnum.PIE_CHART,
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                dimension: {w: 2, h: 1},
                 renderWhenDataChange: false,
                 priority: 1,
             }, {
@@ -1525,10 +1526,8 @@ describe('StudyViewUtils', () => {
                 displayName: clinicalAttr.displayName,
                 description: clinicalAttr.description,
                 uniqueKey: 'test3',
-                chartType: ChartTypeEnum.PIE_CHART,
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                dimension: {w: 1, h: 1},
                 renderWhenDataChange: false,
                 priority: 1,
             }, {
@@ -1536,15 +1535,18 @@ describe('StudyViewUtils', () => {
                 displayName: clinicalAttr.displayName,
                 description: clinicalAttr.description,
                 uniqueKey: 'test4',
-                chartType: ChartTypeEnum.PIE_CHART,
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                dimension: {w: 1, h: 1},
                 renderWhenDataChange: false,
                 priority: 1,
             }];
+            visibleAttrsChartDimensions['test0'] = {w: 2, h: 2};
+            visibleAttrsChartDimensions['test1'] = {w: 2, h: 2};
+            visibleAttrsChartDimensions['test2'] = {w: 2, h: 1};
+            visibleAttrsChartDimensions['test3'] = {w: 1, h: 1};
+            visibleAttrsChartDimensions['test4'] = {w: 1, h: 1};
 
-            let layout: Layout[] = calculateLayout(visibleAttrs, 4);
+            let layout: Layout[] = calculateLayout(visibleAttrs, 4, visibleAttrsChartDimensions, []);
             assert.equal(layout.length, 5);
             assert.equal(layout[0].i, 'test0');
             assert.equal(layout[0].x, 0);
@@ -1985,16 +1987,16 @@ describe('StudyViewUtils', () => {
             assert.deepEqual([], getClinicalDataCountWithColorByCategoryCounts(0, 0))
         });
         it('When only yesCount is > 0', () => {
-            assert.deepEqual([{ count: 10, value: "YES", color: "#109618" }], getClinicalDataCountWithColorByCategoryCounts(10, 0))
+            assert.deepEqual([{ count: 10, value: "YES", color: CLI_YES_COLOR, freq: '100.0%', percentage: 1 }], getClinicalDataCountWithColorByCategoryCounts(10, 0))
         });
         it('When only noCount is > 0', () => {
-            assert.deepEqual([{ count: 10, value: "NO", color: "#DC3912" }], getClinicalDataCountWithColorByCategoryCounts(0, 10))
+            assert.deepEqual([{ count: 10, value: "NO", color: CLI_NO_COLOR, freq: '100.0%', percentage: 1 }], getClinicalDataCountWithColorByCategoryCounts(0, 10))
         });
         it('When both counts are > 0', () => {
             assert.deepEqual(
                 [
-                    { count: 10, value: "YES", color: "#109618" },
-                    { count: 10, value: "NO", color: "#DC3912" }
+                    { count: 10, value: "YES", color: CLI_YES_COLOR, freq: '50.0%', percentage: 0.5 },
+                    { count: 10, value: "NO", color: CLI_NO_COLOR , freq: '50.0%', percentage: 0.5}
                 ], getClinicalDataCountWithColorByCategoryCounts(10, 10))
         });
     });
@@ -2021,15 +2023,14 @@ describe('StudyViewUtils', () => {
                 displayName: clinicalAttr.displayName,
                 description: clinicalAttr.description,
                 uniqueKey: 'test',
-                chartType: ChartTypeEnum.PIE_CHART,
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                dimension: {w: 2, h: 2},
                 renderWhenDataChange: false,
                 priority: 1,
             };
+            const focusedChartDimension = {w: 2, h: 2};
             const cols = 5;
-            const newLayout = calculateNewLayoutForFocusedChart(layout, focusedChartMeta, cols);
+            const newLayout = calculateNewLayoutForFocusedChart(layout, focusedChartMeta, cols, focusedChartDimension);
             assert.equal(newLayout.i, 'test');
             assert.equal(newLayout.x, 1);
             assert.equal(newLayout.y, 1);
@@ -2059,15 +2060,14 @@ describe('StudyViewUtils', () => {
                 displayName: clinicalAttr.displayName,
                 description: clinicalAttr.description,
                 uniqueKey: 'test',
-                chartType: ChartTypeEnum.PIE_CHART,
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                dimension: {w: 2, h: 2},
                 renderWhenDataChange: false,
                 priority: 1,
             };
+            const focusedChartDimension = {w: 2, h: 2};
             const cols = 5;
-            const newLayout = calculateNewLayoutForFocusedChart(layout, focusedChartMeta, cols);
+            const newLayout = calculateNewLayoutForFocusedChart(layout, focusedChartMeta, cols, focusedChartDimension);
             assert.equal(newLayout.i, 'test');
             assert.equal(newLayout.x, 3);
             assert.equal(newLayout.y, 1);
@@ -2097,15 +2097,14 @@ describe('StudyViewUtils', () => {
                 displayName: clinicalAttr.displayName,
                 description: clinicalAttr.description,
                 uniqueKey: 'test',
-                chartType: ChartTypeEnum.PIE_CHART,
                 dataType: ChartMetaDataTypeEnum.CLINICAL,
                 patientAttribute: clinicalAttr.patientAttribute,
-                dimension: {w: 1, h: 1},
                 renderWhenDataChange: false,
                 priority: 1,
-            }
+            };
+            const focusedChartDimension = {w: 1, h: 1};
             const cols = 5;
-            const newLayout = calculateNewLayoutForFocusedChart(layout, focusedChartMeta, cols);
+            const newLayout = calculateNewLayoutForFocusedChart(layout, focusedChartMeta, cols, focusedChartDimension);
             assert.equal(newLayout.i, 'test');
             assert.equal(newLayout.x, 2);
             assert.equal(newLayout.y, 1);
@@ -2114,7 +2113,7 @@ describe('StudyViewUtils', () => {
             assert.equal(newLayout.isResizable, false);
         });
     })
-    
+
     describe ('generateMatrixByLayout', () => {
         it('should return the generated matrix', () => {
             const layout = {
@@ -2162,7 +2161,7 @@ describe('StudyViewUtils', () => {
             w: 1,
             h: 1
         } as Layout
-    ];    
+    ];
 
     describe ('getPositionXByUniqueKey', () => {
         it('should return undefined for the not exist uniqueKey', () => {
@@ -2193,6 +2192,179 @@ describe('StudyViewUtils', () => {
             assert.equal(getStudyViewTabId("study/asdf"), "asdf" as any);
             assert.equal(getStudyViewTabId("study/summary"), StudyViewPageTabKeyEnum.SUMMARY);
             assert.equal(getStudyViewTabId("study/summary/"), StudyViewPageTabKeyEnum.SUMMARY);
+        });
+    });
+
+    describe('customBinsAreValid', () => {
+        it('If the bins have string, it should be invalid', () => {
+            assert.isTrue(!customBinsAreValid(['1', 'test']));
+        });
+        it('If there is no bin defined, it should be invalid', () => {
+            assert.isTrue(!customBinsAreValid([]));
+        });
+        it('Test a valid bin', () => {
+            assert.isTrue(customBinsAreValid(['1', '2']));
+        });
+    })
+
+    describe("formatRange", () => {
+        it("should format min max range with no special value", () => {
+            const actual = formatRange(1.5, 2.5, undefined)
+            const expected = "1.5-2.5";
+            assert.equal(actual, expected);
+        });
+
+        it("should format min max range with special value", () => {
+            const actual = formatRange(1, 2, "Foo ");
+            const expected = "Foo 1-2";
+
+            assert.equal(actual, expected);
+        });
+
+        it("should format min range with special value", () => {
+            const acutal = formatRange(1, undefined, "<=");
+            const expected = "≤1";
+
+            assert.equal(acutal, expected);
+        });
+
+        it("should format max range with special value", () => {
+            const actual = formatRange(undefined, 2, ">=");
+            const expected = "≥2";
+
+            assert.equal(actual, expected);
+        });
+
+        it("should format min max range where min = max", () => {
+            const actual = formatRange(10, 10, undefined);
+            const expected = "10";
+
+            assert.equal(actual, expected);
+        });
+    });
+
+    describe("getBinName", () => {
+        it("should return correct bin name", () => {
+            assert.equal(getBinName({ specialValue:"NA" } as any), "NA");
+            assert.equal(getBinName({ start:10, end:20 } as any), "10-20");
+            assert.equal(getBinName({ start:10, specialValue:"<=" } as any), "<=10");
+            assert.equal(getBinName({ specialValue:">", end:20 } as any), ">20");
+        });
+    });
+
+    describe("getGroupedClinicalDataByBins", () => {
+
+        let clinicalData = [{
+            patientId: 'patient1',
+            sampleId: 'sample1',
+            studyId: 'study1',
+            uniquePatientKey: 'patient1',
+            value: 10
+        }, {
+            patientId: 'patient2',
+            sampleId: 'sample2',
+            studyId: 'study1',
+            uniquePatientKey: 'patient2',
+            value: 11
+        }, {
+            patientId: 'patient3',
+            sampleId: 'sample3',
+            studyId: 'study1',
+            uniquePatientKey: 'patient3',
+            value: 20
+        }, {
+            patientId: 'patient4',
+            sampleId: 'sample4',
+            studyId: 'study1',
+            uniquePatientKey: 'patient4',
+            value: 30
+        }, {
+            patientId: 'patient5',
+            sampleId: 'sample5',
+            studyId: 'study1',
+            uniquePatientKey: 'patient5',
+            value: 40
+        }, {
+            patientId: 'patient6',
+            sampleId: 'sample6',
+            studyId: 'study1',
+            uniquePatientKey: 'patient6',
+            value: 45
+        }, {
+            patientId: 'patient7',
+            sampleId: 'sample7',
+            studyId: 'study1',
+            uniquePatientKey: 'patient7',
+            value: 'NA'
+        }]
+
+        let dataBins = [{
+            'end': 10,
+            'specialValue': '<='
+        }, {
+            'start': 10,
+            'end': 20,
+        }, {
+            'start': 20,
+            'end': 40,
+        }, {
+            'start': 40,
+            'specialValue': '>'
+        }, {
+            'specialValue': 'NA'
+        }]
+
+
+        it("should return grouped clinicalData by bins", () => {
+            assert.deepEqual(getGroupedClinicalDataByBins(clinicalData as any, dataBins as any), {
+                "<=10": [{
+                    "patientId": "patient1",
+                    "sampleId": "sample1",
+                    "studyId": "study1",
+                    "uniquePatientKey": "patient1",
+                    "value": 10
+                }],
+                "10-20": [{
+                    "patientId": "patient2",
+                    "sampleId": "sample2",
+                    "studyId": "study1",
+                    "uniquePatientKey": "patient2",
+                    "value": 11
+                }, {
+                    "patientId": "patient3",
+                    "sampleId": "sample3",
+                    "studyId": "study1",
+                    "uniquePatientKey": "patient3",
+                    "value": 20
+                }],
+                "20-40": [{
+                    "patientId": "patient4",
+                    "sampleId": "sample4",
+                    "studyId": "study1",
+                    "uniquePatientKey": "patient4",
+                    "value": 30
+                }, {
+                    "patientId": "patient5",
+                    "sampleId": "sample5",
+                    "studyId": "study1",
+                    "uniquePatientKey": "patient5",
+                    "value": 40
+                }],
+                ">40": [{
+                    "patientId": "patient6",
+                    "sampleId": "sample6",
+                    "studyId": "study1",
+                    "uniquePatientKey": "patient6",
+                    "value": 45
+                }],
+                "NA": [{
+                    "patientId": "patient7",
+                    "sampleId": "sample7",
+                    "studyId": "study1",
+                    "uniquePatientKey": "patient7",
+                    "value": "NA"
+                }]
+            } as any);
         });
     });
 });

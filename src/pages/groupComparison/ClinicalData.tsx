@@ -7,7 +7,7 @@ import {action, autorun, computed, IReactionDisposer, observable} from "mobx";
 import {SimpleGetterLazyMobXTableApplicationDataStore} from "shared/lib/ILazyMobXTableApplicationDataStore";
 import ClinicalDataEnrichmentsTable from "./ClinicalDataEnrichmentsTable";
 import _ from "lodash";
-import {remoteData} from "shared/api/remoteData";
+import {remoteData} from "public-lib/api/remoteData";
 import client from "shared/api/cbioportalClientInstance";
 import {
     boxPlotTooltip,
@@ -19,9 +19,10 @@ import {
     IStringAxisData,
     makeBoxScatterPlotData,
     MutationSummary,
-    mutationSummaryToAppearance
+    mutationSummaryToAppearance,
+    IAxisLogScaleParams
 } from "pages/resultsView/plots/PlotsTabUtils";
-import DownloadControls from "shared/components/downloadControls/DownloadControls";
+import DownloadControls from "public-lib/components/downloadControls/DownloadControls";
 import ScrollBar from "shared/components/Scrollbar/ScrollBar";
 import BoxScatterPlot, {IBoxScatterPlotData} from "shared/components/plots/BoxScatterPlot";
 import {getMobxPromiseGroupStatus} from "shared/lib/getMobxPromiseGroupStatus";
@@ -29,7 +30,7 @@ import {scatterPlotSize} from "shared/components/plots/PlotUtils";
 import {CLINICAL_TAB_NOT_ENOUGH_GROUPS_MSG, ClinicalDataEnrichmentWithQ, ComparisonGroup} from "./GroupComparisonUtils";
 import MultipleCategoryBarPlot from "../../shared/components/plots/MultipleCategoryBarPlot";
 import {STUDY_VIEW_CONFIG} from "pages/studyView/StudyViewConfig";
-import ReactSelect from "react-select";
+import ReactSelect from "react-select1";
 import {MakeMobxView} from "shared/components/MobxView";
 import OverlapExclusionIndicator from "./OverlapExclusionIndicator";
 import {RESERVED_CLINICAL_VALUE_COLORS} from "../../shared/lib/Colors";
@@ -160,13 +161,24 @@ export default class ClinicalData extends React.Component<IClinicalDataProps, {}
         return this.highlightedRow!.clinicalAttribute.datatype.toLowerCase() === 'number';
     }
 
-    @observable logScale = false;
+    @observable private logScale = false;
+    @observable logScaleFunction:IAxisLogScaleParams|undefined;
     @observable swapAxes = false;
     @observable horizontalBars = false;
 
     @autobind
     @action private onClickLogScale() {
         this.logScale = !this.logScale;
+        if (this.logScale) {
+            const MIN_LOG_ARGUMENT = 0.01;
+            this.logScaleFunction = {
+                label: "log2",
+                fLogScale: (x:number, offset:number) => Math.log2(Math.max(x, MIN_LOG_ARGUMENT)),
+                fInvLogScale: (x:number) => Math.pow(2, x)
+            };
+        } else {
+            this.logScaleFunction = undefined;
+        }
     }
 
     @autobind
@@ -445,7 +457,7 @@ export default class ClinicalData extends React.Component<IClinicalDataProps, {}
                                 chartBase={500}
                                 tooltip={this.boxPlotTooltip}
                                 horizontal={this.boxPlotData.result.horizontal}
-                                logScale={this.logScale}
+                                logScale={this.logScaleFunction}
                                 size={scatterPlotSize}
                                 fill={mutationSummaryToAppearance[MutationSummary.Neither].fill}
                                 stroke={mutationSummaryToAppearance[MutationSummary.Neither].stroke}
@@ -504,7 +516,7 @@ export default class ClinicalData extends React.Component<IClinicalDataProps, {}
                     getSvg={this.getSvg}
                     filename={SVG_ID}
                     dontFade={true}
-                    collapse={true}
+                    type='button'
                     style={{ position: 'absolute', right: 0, top: 0 }}
                 />
             </div>

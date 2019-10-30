@@ -2,7 +2,7 @@ import {assert} from "chai";
 import ResultsViewOncoprint from "./ResultsViewOncoprint";
 import { ResultsViewPageStore } from "pages/resultsView/ResultsViewPageStore";
 import { Sample, Patient } from "shared/api/generated/CBioPortalAPI";
-import getBrowserWindow from "shared/lib/getBrowserWindow";
+import getBrowserWindow from "public-lib/lib/getBrowserWindow";
 import ExtendedRouterStore from "shared/lib/ExtendedRouterStore";
 import sinon from "sinon";
 import { isOccupied } from "pages/studyView/StudyViewUtils";
@@ -31,7 +31,8 @@ describe('Oncoprint sortBy URL parameter', () => {
     const storeMock = {
         samples: {isComplete: true, result: samples},
         patients: {isComplete: true, result: patients},
-        givenSampleOrder: {isComplete: true, result: caseList}
+        givenSampleOrder: {isComplete: true, result: caseList},
+        molecularProfileIdToMolecularProfile: {isComplete: true}
     } as any as ResultsViewPageStore;
 
     it('`case_id` provides sorted sample config to oncoprint', () => {

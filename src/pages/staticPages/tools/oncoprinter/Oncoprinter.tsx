@@ -11,12 +11,14 @@ import {percentAltered} from "../../../../shared/components/oncoprint/OncoprintU
 import AppConfig from "appConfig";
 import OncoprintJS from "oncoprintjs";
 import fileDownload from "react-file-download";
-import svgToPdfDownload from "shared/lib/svgToPdfDownload";
+import svgToPdfDownload from "public-lib/lib/svgToPdfDownload";
 import classNames from "classnames";
-import FadeInteraction from "shared/components/fadeInteraction/FadeInteraction";
+import FadeInteraction from "public-lib/components/fadeInteraction/FadeInteraction";
 import OncoprinterStore from "./OncoprinterStore";
 import autobind from "autobind-decorator";
 import onMobxPromise from "../../../../shared/lib/onMobxPromise";
+import WindowStore from "../../../../shared/components/window/WindowStore";
+import {isWebdriver} from "../../../../public-lib/lib/webdriverUtils";
 
 interface IOncoprinterProps {
     divId: string;
@@ -43,7 +45,7 @@ export default class Oncoprinter extends React.Component<IOncoprinterProps, {}> 
     private controlsHandlers:IOncoprintControlsHandlers;
     private controlsState:IOncoprintControlsState & IObservableObject;
 
-    @observable.ref public oncoprint:OncoprintJS<any>;
+    @observable.ref public oncoprint:OncoprintJS;
 
     constructor(props:IOncoprinterProps) {
         super(props);
@@ -89,7 +91,7 @@ export default class Oncoprinter extends React.Component<IOncoprinterProps, {}> 
                 return self.props.store.driverAnnotationSettings.cbioportalCount;
             },
             get hidePutativePassengers() {
-                return self.props.store.driverAnnotationSettings.ignoreUnknown;
+                return self.props.store.driverAnnotationSettings.excludeVUS;
             },
             get annotateCBioPortalInputValue() {
                 return self.props.store.driverAnnotationSettings.cbioportalCountThreshold + "";
@@ -142,7 +144,7 @@ export default class Oncoprinter extends React.Component<IOncoprinterProps, {}> 
                 if (!s) {
                     this.props.store.driverAnnotationSettings.oncoKb = false;
                     this.props.store.driverAnnotationSettings.cbioportalCount = false;
-                    this.props.store.driverAnnotationSettings.ignoreUnknown = false;
+                    this.props.store.driverAnnotationSettings.excludeVUS = false;
                 } else {
                     if (!this.controlsState.annotateDriversOncoKbDisabled && !this.controlsState.annotateDriversOncoKbError)
                         this.props.store.driverAnnotationSettings.oncoKb = true;
@@ -164,7 +166,7 @@ export default class Oncoprinter extends React.Component<IOncoprinterProps, {}> 
                 this.controlsHandlers.onSelectAnnotateCBioPortal && this.controlsHandlers.onSelectAnnotateCBioPortal(true);
             }),
             onSelectHidePutativePassengers:(s:boolean)=>{
-                this.props.store.driverAnnotationSettings.ignoreUnknown = s;
+                this.props.store.driverAnnotationSettings.excludeVUS = s;
             },
             onSelectSortByMutationType:(s:boolean)=>{this.sortByMutationType = s;},
             onSelectSortByDrivers:(sort:boolean)=>{this.sortByDrivers=sort;},
@@ -224,7 +226,7 @@ export default class Oncoprinter extends React.Component<IOncoprinterProps, {}> 
     }
 
     @autobind
-    private oncoprintRef(oncoprint:OncoprintJS<any>) {
+    private oncoprintRef(oncoprint:OncoprintJS) {
         this.oncoprint = oncoprint;
 
         this.oncoprint.onHorzZoom(z=>(this.horzZoom = z));
@@ -294,6 +296,10 @@ export default class Oncoprinter extends React.Component<IOncoprinterProps, {}> 
         }
     }
 
+    @computed get width() {
+        return WindowStore.size.width - 25;
+    }
+
     public render() {
         return (
             <div className="posRelative">
@@ -316,7 +322,7 @@ export default class Oncoprinter extends React.Component<IOncoprinterProps, {}> 
                                 genesetHeatmapTracks={[]}
                                 heatmapTracks={[]}
                                 divId={this.props.divId}
-                                width={1050}
+                                width={this.width}
                                 caseLinkOutInTooltips={false}
                                 suppressRendering={this.isLoading}
                                 onSuppressRendering={this.onSuppressRendering}

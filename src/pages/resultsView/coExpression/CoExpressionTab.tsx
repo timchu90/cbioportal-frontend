@@ -3,7 +3,7 @@ import {MolecularProfile} from "../../../shared/api/generated/CBioPortalAPI";
 import {action, computed, observable} from "mobx";
 import {observer, Observer} from "mobx-react";
 import {AlterationTypeConstants, ResultsViewPageStore, GeneticEntity, GeneticEntityType} from "../ResultsViewPageStore";
-import Select from "react-select";
+import Select from "react-select1";
 import internalClient from "../../../shared/api/cbioportalInternalClientInstance";
 import {CoExpression, CoExpressionFilter} from "../../../shared/api/generated/CBioPortalAPIInternal";
 import _ from "lodash";
@@ -14,10 +14,11 @@ import {filterAndSortProfiles, getGenesetProfiles, getProfileOptions} from "./Co
 import MobxPromiseCache from "../../../shared/lib/MobxPromiseCache";
 import {ICoExpressionPlotProps} from "./CoExpressionPlot";
 import {bind} from "bind-decorator";
-import OqlStatusBanner from "../../../shared/components/oqlStatusBanner/OqlStatusBanner";
+import OqlStatusBanner from "../../../shared/components/banners/OqlStatusBanner";
 import {getMobxPromiseGroupStatus} from "../../../shared/lib/getMobxPromiseGroupStatus";
 import {IDataQueryFilter} from "shared/lib/StoreUtils";
-import {remoteData} from "shared/api/remoteData";
+import {remoteData} from "public-lib/api/remoteData";
+import AlterationFilterWarning from "../../../shared/components/banners/AlterationFilterWarning";
 
 export interface ICoExpressionTabProps {
     store:ResultsViewPageStore;
@@ -207,7 +208,7 @@ export default class CoExpressionTab extends React.Component<ICoExpressionTabPro
                         molecularProfileIdB: q.profileY.molecularProfileId,
                         coExpressionFilter: dataQueryFilter as CoExpressionFilter,
                         threshold
-                    })
+                    });
                 } else {
                     return Promise.resolve([]);
                 }
@@ -278,6 +279,7 @@ export default class CoExpressionTab extends React.Component<ICoExpressionTabPro
 
     @bind
     private geneTabs() {
+        // we hack together MSKTabs this way because of some particular responsiveness needs and mobxpromise behavior that may or may not still be relevant
         if (this.selectedGeneticEntity.isComplete &&
             this.selectedProfileX.isComplete &&
             this.selectedProfileY.isComplete &&
@@ -379,6 +381,7 @@ export default class CoExpressionTab extends React.Component<ICoExpressionTabPro
             <div data-test="coExpressionTabDiv">
                 <div className={"tabMessageContainer"}>
                     <OqlStatusBanner className="coexp-oql-status-banner" store={this.props.store} tabReflectsOql={false}/>
+                    <AlterationFilterWarning store={this.props.store} isUnaffected={true}/>
                 </div>
 
                 { (status==="complete") && divContents }

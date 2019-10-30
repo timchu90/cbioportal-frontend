@@ -1,15 +1,15 @@
 import {default as URL, QueryParams} from "url";
 import AppConfig from "appConfig";
-import getBrowserWindow from "../lib/getBrowserWindow";
+import getBrowserWindow from "../../public-lib/lib/getBrowserWindow";
 import * as _ from 'lodash';
-import {GroupComparisonURLQuery} from "../../pages/groupComparison/GroupComparisonPage";
 import {GroupComparisonLoadingParams} from "../../pages/groupComparison/GroupComparisonLoading";
+import {BuildUrlParams} from "../../public-lib/lib/urls";
+import {GroupComparisonURLQuery} from "../../pages/groupComparison/GroupComparisonURLWrapper";
+import { PagePath } from "shared/enums/PagePaths";
 
 export function trimTrailingSlash(str:string){
    return str.replace(/\/$/g,"");
 }
-
-export type BuildUrlParams = {pathname:string, query?:QueryParams, hash?:string};
 
 export function buildCBioPortalAPIUrl(params:BuildUrlParams):string;
 export function buildCBioPortalAPIUrl(pathname:string, query?:QueryParams, hash?:string):string;
@@ -57,8 +57,15 @@ export function buildCBioLink(path:string){
 
 export function getCbioPortalApiUrl() {
     const root = trimTrailingSlash(AppConfig.apiRoot!);
-    return `${root}/api`
+    return `${root}/api`;
 }
+
+export function getFrontendAssetUrl(path:string) {
+    const root = trimTrailingSlash(AppConfig.frontendUrl!);
+    return `${root}/${path}`;
+}
+
+
 function getStudySummaryUrlParams(studyIds:string | ReadonlyArray<string>) {
     let cohortsArray:ReadonlyArray<string>;
     if (typeof studyIds === "string") {
@@ -75,7 +82,7 @@ export function getStudySummaryUrl(studyIds:string | ReadonlyArray<string>) {
 }
 export function redirectToStudyView(studyIds: string | ReadonlyArray<string>) {
     const params = getStudySummaryUrlParams(studyIds);
-    (window as any).routingStore.updateRoute(params.query,"study", true);
+    (window as any).routingStore.updateRoute(params.query, PagePath.Study, true);
 }
 export function getSampleViewUrl(studyId:string, sampleId:string, navIds?:{patientId:string, studyId:string}[]) {
     let hash:any = undefined;
@@ -153,25 +160,14 @@ export function getGenomeNexusApiUrl() {
     return getProxyUrlIfNecessary(url);
 }
 
-export function getVirtualStudyServiceUrl() {
+export function getSessionUrl() {
     if (AppConfig.serverConfig && AppConfig.serverConfig.hasOwnProperty("apiRoot")) {
         // TODO: remove this after switch to AWS. This is a hack to use proxy
         // session-service from non apiRoot. We'll have to come up with a better
         // solution for auth portals
-        return buildCBioPortalPageUrl("api-legacy/proxy/session/virtual_study");
+        return buildCBioPortalPageUrl("api-legacy/proxy/session");
     } else {
-        return buildCBioPortalAPIUrl("api-legacy/proxy/session/virtual_study");
-    }
-}
-
-export function getSessionServiceUrl() {
-    if (AppConfig.serverConfig && AppConfig.serverConfig.hasOwnProperty("apiRoot")) {
-        // TODO: remove this after switch to AWS. This is a hack to use proxy
-        // session-service from non apiRoot. We'll have to come up with a better
-        // solution for auth portals
-        return buildCBioPortalPageUrl("api-legacy/proxy/session/main_session");
-    } else {
-        return buildCBioPortalAPIUrl("api-legacy/proxy/session/main_session");
+        return buildCBioPortalAPIUrl("api-legacy/proxy/session");
     }
 }
 
@@ -279,13 +275,4 @@ export function getWholeSlideViewerUrl(ids: string[], userName: string): string 
     catch (ex) {
         throw("error parsing mskWholeSlideViewerToken");
     }
-}
-
-export function getNCBIlink(pathnameOrParams?: BuildUrlParams | string): string {
-    let params = typeof pathnameOrParams === 'string' ? {pathname: pathnameOrParams} : pathnameOrParams;
-    return URL.format({
-        protocol: 'https',
-        host: 'www.ncbi.nlm.nih.gov',
-        ...params
-    });
 }

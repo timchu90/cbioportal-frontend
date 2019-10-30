@@ -2,26 +2,25 @@ import * as React from 'react';
 import LoadingIndicator from "shared/components/loadingIndicator/LoadingIndicator";
 import {observer} from "mobx-react";
 import GroupComparisonStore from './GroupComparisonStore';
-import {observable, computed} from 'mobx';
+import {action, computed, observable} from 'mobx';
 import Venn from './OverlapVenn';
 import _ from "lodash";
 import autobind from 'autobind-decorator';
-import DownloadControls from 'shared/components/downloadControls/DownloadControls';
+import DownloadControls from 'public-lib/components/downloadControls/DownloadControls';
 import {MakeMobxView} from "../../shared/components/MobxView";
 import Loader from "../../shared/components/loadingIndicator/LoadingIndicator";
 import ErrorMessage from "../../shared/components/ErrorMessage";
 import {
-    CLINICAL_TAB_NOT_ENOUGH_GROUPS_MSG,
     getSampleIdentifiers,
     OVERLAP_NOT_ENOUGH_GROUPS_MSG,
     partitionCasesByGroupMembership
 } from "./GroupComparisonUtils";
-import {remoteData} from "../../shared/api/remoteData";
-import UpSet from './UpSet';
+import {remoteData} from "../../public-lib/api/remoteData";
 import * as ReactDOM from 'react-dom';
 import WindowStore from 'shared/components/window/WindowStore';
 import {getPatientIdentifiers} from "../studyView/StudyViewUtils";
 import OverlapExclusionIndicator from "./OverlapExclusionIndicator";
+import OverlapUpset from "./OverlapUpset";
 
 export interface IOverlapProps {
     store: GroupComparisonStore
@@ -38,9 +37,16 @@ enum PlotType {
 export default class Overlap extends React.Component<IOverlapProps, {}> {
 
     @observable plotExists = false;
+    @observable vennFailed = false;
 
     componentDidUpdate() {
         this.plotExists = !!this.getSvg();
+    }
+
+    @autobind
+    @action
+    private onVennLayoutFailure() {
+        this.vennFailed = true;
     }
 
     readonly tabUI = MakeMobxView({
@@ -60,6 +66,13 @@ export default class Overlap extends React.Component<IOverlapProps, {}> {
                 content.push(<span>{OVERLAP_NOT_ENOUGH_GROUPS_MSG}</span>);
             } else {
                 content.push(<OverlapExclusionIndicator overlapTabMode={true} store={this.props.store}/>);
+                if (this.vennFailed) {
+                    content.push(
+                        <div className="alert alert-info">
+                            We couldn't find a good Venn diagram layout, so showing UpSet diagram instead.
+                        </div>
+                    );
+                }
                 content.push(this.overlapUI.component);
             }
             return (<div data-test="ComparisonPageOverlapTabDiv">
@@ -88,12 +101,12 @@ export default class Overlap extends React.Component<IOverlapProps, {}> {
             //move patient element down by sample element size
             if (this.areUpsetPlotsSidebySide) {
                 patientElement.setAttribute("x", `${$(sampleElement).width()}`);
-                height = Math.max($(sampleElement).height(), $(patientElement).height());
-                width = $(sampleElement).width() + $(patientElement).width();
+                height = Math.max($(sampleElement).height()!, $(patientElement).height()!);
+                width = $(sampleElement).width()! + $(patientElement).width()!;
             } else {
                 patientElement.setAttribute("y", `${$(sampleElement).height()}`);
-                height = $(sampleElement).height() + $(patientElement).height();
-                width = Math.max($(sampleElement).width(), $(patientElement).width());
+                height = $(sampleElement).height()! + $(patientElement).height()!;
+                width = Math.max($(sampleElement).width()!, $(patientElement).width()!);
             }
 
             $(svg).attr("height", height);
@@ -108,7 +121,13 @@ export default class Overlap extends React.Component<IOverlapProps, {}> {
 
     readonly plotType = remoteData({
         await:()=>[this.props.store._selectedGroups],
-        invoke:async()=>(this.props.store._selectedGroups.result!.length > 3 ? PlotType.Upset : PlotType.Venn)
+        invoke:()=>{
+            if (this.vennFailed || this.props.store._selectedGroups.result!.length > 3) {
+                return Promise.resolve(PlotType.Upset);
+            } else {
+                return Promise.resolve(PlotType.Venn);
+            }
+        }
     });
 
 
@@ -232,20 +251,15 @@ export default class Overlap extends React.Component<IOverlapProps, {}> {
             switch (this.plotType.result!) {
                 case PlotType.Upset: {
                     plotElt = (
-                        <div style={{ display: `${this.areUpsetPlotsSidebySide ? "flex" : "block"}`, maxWidth: this.maxWidth, overflow: "auto hidden" }} >
-                            <UpSet
-                                groups={this.samplesVennPartition.result!}
-                                uidToGroup={this.uidToGroup.result!}
-                                caseType="sample"
-                                title="Samples overlap"
-                            />
-                            <UpSet
-                                groups={this.patientsVennPartition.result!}
-                                uidToGroup={this.uidToGroup.result!}
-                                caseType="patient"
-                                title="Patients overlap"
-                            />
-                        </div>)
+                        <OverlapUpset
+                            store={this.props.store}
+                            sideBySide={this.areUpsetPlotsSidebySide}
+                            maxWidth={this.maxWidth}
+                            samplesVennPartition={this.samplesVennPartition.result!}
+                            patientsVennPartition={this.patientsVennPartition.result!}
+                            uidToGroup={this.uidToGroup.result!}
+                        />
+                    );
                     break;
                 }
                 case PlotType.Venn:
@@ -256,6 +270,7 @@ export default class Overlap extends React.Component<IOverlapProps, {}> {
                             patientGroups={this.patientGroupsWithCases.result!}
                             uidToGroup={this.uidToGroup.result!}
                             store={this.props.store}
+                            onLayoutFailure={this.onVennLayoutFailure}
                         />)
                     break;
                 default:
@@ -277,7 +292,7 @@ export default class Overlap extends React.Component<IOverlapProps, {}> {
                         filename={'overlap'}
                         dontFade={true}
                         style={{ position: 'absolute', right: 10, top: 10 }}
-                        collapse={true}
+                        type='button'
                     />
                 )}
                 <div style={{ position: "relative", display: "inline-block" }}>

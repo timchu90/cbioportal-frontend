@@ -4,7 +4,6 @@ import GroupComparisonStore, {OverlapStrategy} from "./GroupComparisonStore";
 import MutationEnrichments from "./MutationEnrichments";
 import {MSKTab, MSKTabs} from "../../shared/components/MSKTabs/MSKTabs";
 import {PageLayout} from "../../shared/components/PageLayout/PageLayout";
-import 'react-select/dist/react-select.css';
 import Survival from "./Survival";
 import Overlap from "./Overlap";
 import CopyNumberEnrichments from "./CopyNumberEnrichments";
@@ -17,95 +16,70 @@ import GroupSelector from "./groupSelector/GroupSelector";
 import {getTabId, GroupComparisonTab} from "./GroupComparisonUtils";
 import styles from "./styles.module.scss";
 import {StudyLink} from "shared/components/StudyLink/StudyLink";
-import {computed, IReactionDisposer, observable, reaction, action} from "mobx";
+import {action, computed, IReactionDisposer, observable, reaction} from "mobx";
 import autobind from "autobind-decorator";
 import {AppStore} from "../../AppStore";
 import _ from "lodash";
 import ClinicalData from "./ClinicalData";
-import ReactSelect from "react-select2";
-import {joinGroupNames} from "./OverlapUtils";
+import ReactSelect from "react-select";
 import {trackEvent} from "shared/lib/tracking";
+import URL from "url";
+import GroupComparisonURLWrapper, {GroupComparisonURLQuery} from "./GroupComparisonURLWrapper";
 
 export interface IGroupComparisonPageProps {
     routing:any;
     appStore:AppStore;
 }
 
-export type GroupComparisonURLQuery = {
-    sessionId: string;
-};
-
 @inject('routing', 'appStore')
 @observer
 export default class GroupComparisonPage extends React.Component<IGroupComparisonPageProps, {}> {
     @observable.ref private store:GroupComparisonStore;
     private queryReaction:IReactionDisposer;
-    private pathnameReaction:IReactionDisposer;
-    private unsavedGroupsReaction:IReactionDisposer;
-    private unsavedOrderReaction:IReactionDisposer;
-    private lastQuery:Partial<GroupComparisonURLQuery>;
-
-    @observable unsavedOrderWarningDismissed = false;
-    @observable unsavedGroupsWarningDismissed = false;
+    private urlWrapper:GroupComparisonURLWrapper;
 
     constructor(props:IGroupComparisonPageProps) {
         super(props);
+        this.urlWrapper = new GroupComparisonURLWrapper(props.routing);
         this.queryReaction = reaction(
-            () => props.routing.location.query,
-            query => {
+            () => this.urlWrapper.query.sessionId,
+            sessionId => {
 
-                if (!props.routing.location.pathname.includes("/comparison") ||
-                    _.isEqual(query, this.lastQuery)) {
+                if (!props.routing.location.pathname.includes("/comparison") || !sessionId) {
                     return;
                 }
 
-                this.store = new GroupComparisonStore((query as GroupComparisonURLQuery).sessionId, this.props.appStore);
+                if (this.store) {
+                    this.store.destroy();
+                }
+
+                this.store = new GroupComparisonStore(sessionId, this.props.appStore, this.urlWrapper);
                 (window as any).groupComparisonStore = this.store;
-
-                this.lastQuery = query;
             },
             {fireImmediately: true}
-        );
-
-        this.pathnameReaction = reaction(
-            () => props.routing.location.pathname,
-            pathname => {
-
-                if (!pathname.includes("/comparison")) {
-                    return;
-                }
-
-                const tabId = getTabId(pathname);
-                if (tabId) {
-                    this.store.setTabId(tabId);
-                }
-            },
-            {fireImmediately: true}
-        );
-
-        this.unsavedGroupsReaction = reaction(
-            ()=>this.store.unsavedGroups,
-            ()=>{ this.unsavedGroupsWarningDismissed = false; }
-        );
-
-        this.unsavedOrderReaction = reaction(
-            ()=>JSON.stringify(this.store.dragNameOrder), // need to touch every element to react to changes bc the array changes in place
-            ()=>{ this.unsavedOrderWarningDismissed = false; }
         );
 
         (window as any).groupComparisonPage = this;
     }
 
     @autobind
-    private setTabId(id:string, replace?:boolean) {
-        this.props.routing.updateRoute({},`comparison/${id}`, false, replace);
+    private getTabHref(tabId:string) {
+        return URL.format({
+            pathname:tabId,
+            query:this.props.routing.location.query,
+            hash:this.props.routing.location.hash
+        });
+    }
+
+    @computed get selectedGroupsKey() {
+        // for components which should remount whenever selected groups change
+        const selectedGroups = this.store._selectedGroups.result || [];
+        return JSON.stringify(selectedGroups.map(g=>g.uid));
     }
 
     componentWillUnmount() {
         this.queryReaction && this.queryReaction();
-        this.pathnameReaction && this.pathnameReaction();
-        this.unsavedGroupsReaction && this.unsavedGroupsReaction();
-        this.unsavedOrderReaction && this.unsavedOrderReaction();
+        this.store && this.store.destroy();
     }
 
     readonly tabs = MakeMobxView({
@@ -119,51 +93,61 @@ export default class GroupComparisonPage extends React.Component<IGroupCompariso
             this.store.survivalClinicalDataExists,
         ],
         render:()=>{
-            return <MSKTabs unmountOnHide={false} activeTabId={this.store.currentTabId} onTabClick={this.setTabId} className="primaryTabs mainTabs">
-                <MSKTab id={GroupComparisonTab.OVERLAP} linkText="Overlap">
-                    <Overlap store={this.store}/>
-                </MSKTab>
-                {
-                    this.store.showSurvivalTab &&
-                    <MSKTab id={GroupComparisonTab.SURVIVAL} linkText="Survival"
-                            anchorClassName={this.store.survivalTabGrey ? "greyedOut" : ""}
-                    >
-                        <Survival store={this.store}/>
+            return (
+                <MSKTabs unmountOnHide={false}
+                         activeTabId={this.urlWrapper.tabId}
+                         onTabClick={this.urlWrapper.setTabId}
+                         className="primaryTabs mainTabs"
+                         getTabHref={this.getTabHref}
+                >
+                    <MSKTab id={GroupComparisonTab.OVERLAP} linkText="Overlap">
+                        <Overlap
+                            key={this.selectedGroupsKey}
+                            store={this.store}
+                        />
                     </MSKTab>
-                }
-                <MSKTab id={GroupComparisonTab.CLINICAL} linkText="Clinical"
-                    anchorClassName={this.store.clinicalTabGrey ? "greyedOut" : ""}>
-                    <ClinicalData store={this.store}/>
-                </MSKTab>
-                {this.store.mutationEnrichmentProfiles.result!.length > 0 && (
-                    <MSKTab id={GroupComparisonTab.MUTATIONS} linkText="Mutations"
-                        anchorClassName={this.store.mutationsTabGrey ? "greyedOut" : ""}
-                    >
-                        <MutationEnrichments store={this.store}/>
+                    {
+                        this.store.showSurvivalTab &&
+                        <MSKTab id={GroupComparisonTab.SURVIVAL} linkText="Survival"
+                                anchorClassName={this.store.survivalTabUnavailable ? "greyedOut" : ""}
+                        >
+                            <Survival store={this.store}/>
+                        </MSKTab>
+                    }
+                    <MSKTab id={GroupComparisonTab.CLINICAL} linkText="Clinical"
+                        anchorClassName={this.store.clinicalTabUnavailable ? "greyedOut" : ""}>
+                        <ClinicalData store={this.store}/>
                     </MSKTab>
-                )}
-                {this.store.copyNumberEnrichmentProfiles.result!.length > 0 && (
-                    <MSKTab id={GroupComparisonTab.CNA} linkText="Copy-number"
-                        anchorClassName={this.store.copyNumberTabGrey ? "greyedOut" : ""}
-                    >
-                        <CopyNumberEnrichments store={this.store}/>
-                    </MSKTab>
-                )}
-                {this.store.mRNAEnrichmentProfiles.result!.length > 0 && (
-                    <MSKTab id={GroupComparisonTab.MRNA} linkText="mRNA"
-                        anchorClassName={this.store.mRNATabGrey ? "greyedOut" : ""}
-                    >
-                        <MRNAEnrichments store={this.store}/>
-                    </MSKTab>
-                )}
-                {this.store.proteinEnrichmentProfiles.result!.length > 0 && (
-                    <MSKTab id={GroupComparisonTab.PROTEIN} linkText="Protein"
-                        anchorClassName={this.store.proteinTabGrey ? "greyedOut" : ""}
-                    >
-                        <ProteinEnrichments store={this.store}/>
-                    </MSKTab>
-                )}
-            </MSKTabs>;
+                    {this.store.showMutationsTab && (
+                        <MSKTab id={GroupComparisonTab.MUTATIONS} linkText="Mutations"
+                            anchorClassName={this.store.mutationsTabUnavailable ? "greyedOut" : ""}
+                        >
+                            <MutationEnrichments store={this.store}/>
+                        </MSKTab>
+                    )}
+                    {this.store.showCopyNumberTab && (
+                        <MSKTab id={GroupComparisonTab.CNA} linkText="Copy-number"
+                            anchorClassName={this.store.copyNumberUnavailable ? "greyedOut" : ""}
+                        >
+                            <CopyNumberEnrichments store={this.store}/>
+                        </MSKTab>
+                    )}
+                    {this.store.showMRNATab && (
+                        <MSKTab id={GroupComparisonTab.MRNA} linkText="mRNA"
+                            anchorClassName={this.store.mRNATabUnavailable ? "greyedOut" : ""}
+                        >
+                            <MRNAEnrichments store={this.store}/>
+                        </MSKTab>
+                    )}
+                    {this.store.showProteinTab && (
+                        <MSKTab id={GroupComparisonTab.PROTEIN} linkText="Protein"
+                            anchorClassName={this.store.proteinTabUnavailable ? "greyedOut" : ""}
+                        >
+                            <ProteinEnrichments store={this.store}/>
+                        </MSKTab>
+                    )}
+                </MSKTabs>
+            );
         },
         renderPending:()=><LoadingIndicator center={true} isLoading={true}  size={"big"} />,
         renderError:()=><ErrorMessage/>
@@ -205,7 +189,7 @@ export default class GroupComparisonPage extends React.Component<IGroupCompariso
     @action
     public onOverlapStrategySelect(option:any) {
         trackEvent({ category:'groupComparison', action:'setOverlapStrategy', label:option.value});
-        this.store.setOverlapStrategy(option.value);
+        this.store.updateOverlapStrategy(option.value as OverlapStrategy);
     }
 
     readonly overlapStrategySelector = MakeMobxView({
@@ -214,6 +198,8 @@ export default class GroupComparisonPage extends React.Component<IGroupCompariso
             if (!this.store.overlapComputations.result!.totalSampleOverlap && !this.store.overlapComputations.result!.totalPatientOverlap) {
                 return null;
             } else {
+                const includeLabel = "Include overlapping samples and patients";
+                const excludeLabel = "Exclude overlapping samples and patients";
                 return (
                     <div style={{minWidth:355, width:355, zIndex:20}}>
                         <ReactSelect
@@ -224,96 +210,18 @@ export default class GroupComparisonPage extends React.Component<IGroupCompariso
                                 }
                             }}
                             options={[
-                                { label: OverlapStrategy.INCLUDE, value: OverlapStrategy.INCLUDE},
-                                { label: OverlapStrategy.EXCLUDE, value: OverlapStrategy.EXCLUDE}
+                                { label: includeLabel, value: OverlapStrategy.INCLUDE },
+                                { label: excludeLabel, value: OverlapStrategy.EXCLUDE }
                             ]}
                             clearable={false}
                             searchable={false}
-                            value={{ label: this.store.overlapStrategy, value: this.store.overlapStrategy}}
+                            value={{ label: this.store.overlapStrategy === OverlapStrategy.EXCLUDE ? excludeLabel : includeLabel, value: this.store.overlapStrategy}}
                         />
                     </div>
                 );
             }
         }
     });
-
-    @computed get unsavedGroupsWarning() {
-        const pluralUnsaved = this.store.unsavedGroups.length > 1;
-
-        if (this.store.unsavedGroups.length > 0 && !this.unsavedGroupsWarningDismissed) {
-            return (
-                <div className="alert alert-warning" style={{display:"flex", marginBottom:3, marginTop:7}}>
-                    <i className="fa fa-md fa-exclamation-triangle" style={{marginRight:12, marginTop:3}}/>
-                    <div style={{maxWidth:500, display:"inline-block", marginRight: 6}}>
-                        {joinGroupNames(this.store.unsavedGroups, "and")} {pluralUnsaved ? "are" : "is"} not saved. Others visiting this link will not see {pluralUnsaved ? "them" : "it"}.
-                    </div>
-                    <div
-                        style={{display:"inline-block"}}
-                    >
-                        <button
-                            className="btn btn-xs btn-default"
-                            onClick={this.store.saveUnsavedGroupsAndGoToNewSession}
-                            style={{marginRight:5}}
-                        >
-                            Save to new comparison session
-                        </button>
-                        <button
-                            className="btn btn-xs btn-default"
-                            onClick={this.store.clearUnsavedGroups}
-                        >
-                            Delete {pluralUnsaved ? "them" : "it"}
-                        </button>
-                    </div>
-                    <div className="btn btn-xs btn-none"
-                         onClick={action(()=>{ this.unsavedGroupsWarningDismissed = true; })}
-                         style={{position:"absolute", right:25}}
-                    >
-                        <i className="fa fa-md fa-times"/>
-                    </div>
-                </div>
-            );
-        } else {
-            return null;
-        }
-    }
-
-    @computed get unsavedOrderWarning() {
-        if (this.store.dragNameOrder && !this.unsavedOrderWarningDismissed) {
-            return (
-                <div className="alert alert-warning" style={{display:"flex", marginBottom:3, marginTop:7}}>
-                    <i className="fa fa-md fa-exclamation-triangle" style={{marginRight:12, marginTop:3}}/>
-                    <div style={{maxWidth:500, display:"inline-block", marginRight: 6}}>
-                        Your group order is not saved.
-                    </div>
-                    <div
-                        style={{display:"inline-block"}}
-                    >
-                        <button
-                            className="btn btn-xs btn-default"
-                            onClick={this.store.saveDragNameOrderAndGoToNewSession}
-                            style={{marginRight:5}}
-                        >
-                            Save to new comparison session
-                        </button>
-                        <button
-                            className="btn btn-xs btn-default"
-                            onClick={this.store.clearDragNameOrder}
-                        >
-                            Reset
-                        </button>
-                    </div>
-                    <div className="btn btn-xs btn-none"
-                         onClick={action(()=>{ this.unsavedOrderWarningDismissed = true; })}
-                         style={{position:"absolute", right:25}}
-                    >
-                        <i className="fa fa-md fa-times"/>
-                    </div>
-                </div>
-            );
-        } else {
-            return null;
-        }
-    }
 
     render() {
         if (!this.store) {
@@ -323,16 +231,17 @@ export default class GroupComparisonPage extends React.Component<IGroupCompariso
         return (
             <PageLayout noMargin={true} hideFooter={true} className={"subhead-dark"}>
                 <div>
+                    <LoadingIndicator center={true} isLoading={this.store.newSessionPending}  size={"big"} />
                     <div className={"headBlock"}>
-                        {this.studyLink.component}
-                        {this.unsavedGroupsWarning}
-                        {this.unsavedOrderWarning}
+                        <div style={{display:"flex", justifyContent:"space-between"}}>
+                            {this.studyLink.component}
+                            {this.overlapStrategySelector.component}
+                        </div>
                         <div>
                             <div className={styles.headerControls}>
                                 <GroupSelector
                                     store = {this.store}
                                 />
-                                {this.overlapStrategySelector.component}
                             </div>
                         </div>
                     </div>

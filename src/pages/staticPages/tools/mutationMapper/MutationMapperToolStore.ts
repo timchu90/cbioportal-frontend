@@ -1,31 +1,38 @@
 import {action, computed, observable} from "mobx";
 import * as _ from "lodash";
 import {cached} from "mobxpromise";
+import {
+    annotateMutations,
+    IHotspotIndex,
+    indexHotspotsData,
+    resolveDefaultsForMissingValues
+} from "react-mutation-mapper";
 
 import AppConfig from "appConfig";
 
-import {remoteData} from "shared/api/remoteData";
+import {remoteData} from "public-lib/api/remoteData";
 import {ClinicalData, Gene, Mutation} from "shared/api/generated/CBioPortalAPI";
 import {
     fetchGenes, fetchMyCancerGenomeData, fetchOncoKbData,
     ONCOKB_DEFAULT,
-    fetchCanonicalEnsemblGeneIds,
-    getCanonicalTranscriptsByHugoSymbol, fetchOncoKbCancerGenes
+    getCanonicalTranscriptsByHugoSymbol,
+    fetchOncoKbCancerGenes,
+    fetchVariantAnnotationsIndexedByGenomicLocation
 } from "shared/lib/StoreUtils";
-import {annotateMutations, resolveDefaultsForMissingValues, fetchVariantAnnotationsIndexedByGenomicLocation} from "shared/lib/MutationAnnotator";
 import {getClinicalData, getGeneList, mutationInputToMutation, MutationInput} from "shared/lib/MutationInputParser";
 import {updateMissingGeneInfo} from "shared/lib/MutationUtils";
 import {IOncoKbData} from "shared/model/OncoKB";
-import {fetchHotspotsData, indexHotspotsData} from "shared/lib/CancerHotspotsUtils";
-import {IHotspotIndex} from "shared/model/CancerHotspots";
+import {fetchHotspotsData} from "shared/lib/CancerHotspotsUtils";
 import OncoKbEvidenceCache from "shared/cache/OncoKbEvidenceCache";
 import PubMedCache from "shared/cache/PubMedCache";
 import GenomeNexusCache from "shared/cache/GenomeNexusCache";
+import GenomeNexusMyVariantInfoCache from "shared/cache/GenomeNexusMyVariantInfoCache";
 import PdbHeaderCache from "shared/cache/PdbHeaderCache";
 import MutationMapperStore from "shared/components/mutationMapper/MutationMapperStore";
 import {MutationTableDownloadDataFetcher} from "shared/lib/MutationTableDownloadDataFetcher";
-import { VariantAnnotation, EnsemblTranscript } from "shared/api/generated/GenomeNexusAPI";
-import {CancerGene} from "shared/api/generated/OncoKbAPI";
+import {normalizeMutations} from "../../../../shared/components/mutationMapper/MutationMapperUtils";
+import { VariantAnnotation, EnsemblTranscript } from "public-lib/api/generated/GenomeNexusAPI";
+import {CancerGene} from "public-lib/api/generated/OncoKbAPI";
 
 export default class MutationMapperToolStore
 {
@@ -138,15 +145,15 @@ export default class MutationMapperToolStore
             this.genes
         ],
         invoke: () => {
-            let mutations: Mutation[] = [];
+            let mutations: Partial<Mutation>[] = [];
 
             if (this.annotatedMutations) {
-                mutations =  this.annotatedMutations;
+                mutations = normalizeMutations(this.annotatedMutations as Pick<Mutation, "chr">[]) as Partial<Mutation>[];
                 resolveDefaultsForMissingValues(mutations);
                 updateMissingGeneInfo(mutations, this.genesByHugoSymbol);
             }
 
-            return Promise.resolve(mutations);
+            return Promise.resolve(mutations as Mutation[]);
         }
     }, []);
 
@@ -221,9 +228,11 @@ export default class MutationMapperToolStore
         return mutationInputToMutation(this.mutationData) as Mutation[] || [];
     }
 
-    @computed get annotatedMutations(): Mutation[]
+    @computed get annotatedMutations(): Partial<Mutation>[]
     {
-        return this.indexedVariantAnnotations.result? annotateMutations(this.rawMutations, this.indexedVariantAnnotations.result) : [];
+        return this.indexedVariantAnnotations.result ?
+            annotateMutations(normalizeMutations(this.rawMutations), this.indexedVariantAnnotations.result) as Partial<Mutation>[]:
+            [];
     }
     @computed get mutationsNotAnnotated(): {lineNumber:number, mutationInput:Partial<MutationInput>}[]
     {
@@ -259,6 +268,10 @@ export default class MutationMapperToolStore
         return new GenomeNexusCache();
     }
 
+    @cached get genomeNexusMyVariantInfoCache() {
+        return new GenomeNexusMyVariantInfoCache();
+    }
+
     @cached get pdbHeaderCache() {
         return new PdbHeaderCache();
     }
@@ -268,7 +281,7 @@ export default class MutationMapperToolStore
     }
 
     @cached get downloadDataFetcher() {
-        return new MutationTableDownloadDataFetcher(this.mutations, undefined, () => this.genomeNexusCache);
+        return new MutationTableDownloadDataFetcher(this.mutations, undefined, () => this.genomeNexusCache, () => this.genomeNexusMyVariantInfoCache);
     }
 
     @action public clearCriticalErrors() {

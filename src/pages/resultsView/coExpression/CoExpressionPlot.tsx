@@ -7,10 +7,11 @@ import {getSampleViewUrl} from "../../../shared/api/urls";
 import "./styles.scss";
 import {bind} from "bind-decorator";
 import ScatterPlot from "../../../shared/components/plots/ScatterPlot";
-import DownloadControls from "../../../shared/components/downloadControls/DownloadControls";
+import DownloadControls from "../../../public-lib/components/downloadControls/DownloadControls";
 import {axisLabel, isNotProfiled} from "./CoExpressionPlotUtils";
 import _ from "lodash";
 import {scatterPlotSize} from "../../../shared/components/plots/PlotUtils";
+import { IAxisLogScaleParams } from 'pages/resultsView/plots/PlotsTabUtils';
 
 export interface ICoExpressionPlotProps {
     xAxisGeneticEntity:GeneticEntity;
@@ -189,11 +190,25 @@ export default class CoExpressionPlot extends React.Component<ICoExpressionPlotP
     }
 
     @computed get axisLabelX() {
-        return axisLabel({geneticEntityName: this.props.xAxisGeneticEntity.geneticEntityName}, !!this.props.logScale, this.props.molecularProfileX.name);
+        return axisLabel({geneticEntityName: this.props.xAxisGeneticEntity.geneticEntityName}, this.axisLogScaleFunction, this.props.molecularProfileX.name);
     }
 
     @computed get axisLabelY() {
-        return axisLabel({geneticEntityName: this.props.yAxisGeneticEntity.geneticEntityName}, !!this.props.logScale, this.props.molecularProfileY.name);
+        return axisLabel({geneticEntityName: this.props.yAxisGeneticEntity.geneticEntityName}, this.axisLogScaleFunction, this.props.molecularProfileY.name);
+    }
+
+    @computed get axisLogScaleFunction():IAxisLogScaleParams|undefined {
+
+        const MIN_LOG_ARGUMENT = 0.01;
+
+        if (!this.props.logScale) {
+            return undefined;
+        }
+        return {
+            label: "log2",
+            fLogScale: (x:number, offset:number) => Math.log2(Math.max(x, MIN_LOG_ARGUMENT)),
+            fInvLogScale: (x:number) => Math.pow(2, x)
+        };
     }
 
     @bind
@@ -213,9 +228,9 @@ export default class CoExpressionPlot extends React.Component<ICoExpressionPlotP
                 fill={this.fill}
                 strokeWidth={1.2}
                 legendData={this.mutationLegendElements}
-                logX={this.props.logScale}
-                logY={this.props.logScale}
                 showRegressionLine={this.props.showRegressionLine}
+                logX={this.axisLogScaleFunction}
+                logY={this.axisLogScaleFunction}
                 useLogSpaceTicks={true}
                 axisLabelX={this.axisLabelX}
                 axisLabelY={this.axisLabelY}
@@ -266,7 +281,7 @@ export default class CoExpressionPlot extends React.Component<ICoExpressionPlotP
                     getSvg={this.getSvg}
                     filename="coexpression"
                     dontFade={true}
-                    collapse={true}
+                    type='button'
                     style={{position:"absolute", top:0, right:0}}
                 />
 

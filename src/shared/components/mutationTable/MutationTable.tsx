@@ -37,6 +37,7 @@ import VariantCountCache from "shared/cache/VariantCountCache";
 import PubMedCache from "shared/cache/PubMedCache";
 import MutationCountCache from "shared/cache/MutationCountCache";
 import GenomeNexusCache from "shared/cache/GenomeNexusCache";
+import GenomeNexusMyVariantInfoCache from "shared/cache/GenomeNexusMyVariantInfoCache";
 import {ILazyMobXTableApplicationDataStore} from "shared/lib/ILazyMobXTableApplicationDataStore";
 import {ILazyMobXTableApplicationLazyDownloadDataFetcher} from "shared/lib/ILazyMobXTableApplicationLazyDownloadDataFetcher";
 import generalStyles from "./column/styles.module.scss";
@@ -44,9 +45,13 @@ import classnames from 'classnames';
 import {IPaginationControlsProps} from "../paginationControls/PaginationControls";
 import {IColumnVisibilityControlsProps} from "../columnVisibilityControls/ColumnVisibilityControls";
 import MobxPromise from "mobxpromise";
-import { VariantAnnotation } from "shared/api/generated/GenomeNexusAPI";
+import { VariantAnnotation } from "public-lib/api/generated/GenomeNexusAPI";
 import HgvscColumnFormatter from "./column/HgvscColumnFormatter";
-import {CancerGene} from "shared/api/generated/OncoKbAPI";
+import {CancerGene} from "public-lib/api/generated/OncoKbAPI";
+import GnomadColumnFormatter from "./column/GnomadColumnFormatter";
+import ClinVarColumnFormatter from "./column/ClinVarColumnFormatter";
+import DbsnpColumnFormatter from "./column/DbsnpColumnFormatter";
+
 
 export interface IMutationTableProps {
     studyIdToStudy?: {[studyId:string]:CancerStudy};
@@ -60,6 +65,7 @@ export interface IMutationTableProps {
     pubMedCache?:PubMedCache;
     mutationCountCache?:MutationCountCache;
     genomeNexusCache?:GenomeNexusCache;
+    genomeNexusMyVariantInfoCache?:GenomeNexusMyVariantInfoCache
     mutSigData?:IMutSigData;
     enableOncoKb?: boolean;
     enableMyCancerGenome?: boolean;
@@ -94,7 +100,7 @@ export interface IMutationTableProps {
 export enum MutationTableColumnType {
     STUDY,
     SAMPLE_ID,
-    TUMORS,
+    SAMPLES,
     GENE,
     PROTEIN_CHANGE,
     CHROMOSOME,
@@ -121,7 +127,10 @@ export enum MutationTableColumnType {
     CANCER_TYPE,
     NUM_MUTATIONS,
     EXON,
-    HGVSC
+    HGVSC,
+    GNOMAD,
+    CLINVAR,
+    DBSNP
 }
 
 type MutationTableColumn = Column<Mutation[]>&{order?:number, shouldExclude?:()=>boolean};
@@ -529,6 +538,47 @@ export default class MutationTable<P extends IMutationTableProps> extends React.
                 : <span></span>),
             download: (d:Mutation[]) => HgvscColumnFormatter.download(d, this.props.genomeNexusCache as GenomeNexusCache),
             sortBy: (d:Mutation[]) => HgvscColumnFormatter.getSortValue(d, this.props.genomeNexusCache as GenomeNexusCache),
+            visible: false,
+            align: "right"
+        };
+        
+        this._columns[MutationTableColumnType.GNOMAD] = {
+            name: "gnomAD",
+            render: (d:Mutation[]) => GnomadColumnFormatter.renderFunction(d, this.props.genomeNexusMyVariantInfoCache as GenomeNexusMyVariantInfoCache),
+            sortBy: (d:Mutation[]) => GnomadColumnFormatter.getSortValue(d, this.props.genomeNexusMyVariantInfoCache as GenomeNexusMyVariantInfoCache),
+            download: (d:Mutation[]) => GnomadColumnFormatter.download(d, this.props.genomeNexusMyVariantInfoCache as GenomeNexusMyVariantInfoCache),
+            tooltip: (<span><a href="https://gnomad.broadinstitute.org/">gnomAD</a> population allele frequencies. 
+            Overall population allele frequency is shown. Hover over a frequency to see the frequency for each specific population.</span>),
+            defaultSortDirection: "desc",
+            visible: false,
+            align: "right"
+        };
+
+        this._columns[MutationTableColumnType.CLINVAR] = {
+            name: "ClinVar ID",
+            render: (d:Mutation[]) => ClinVarColumnFormatter.renderFunction(d, this.props.genomeNexusMyVariantInfoCache as GenomeNexusMyVariantInfoCache),
+            sortBy: (d:Mutation[]) => ClinVarColumnFormatter.getSortValue(d, this.props.genomeNexusMyVariantInfoCache as GenomeNexusMyVariantInfoCache),
+            download: (d:Mutation[]) => ClinVarColumnFormatter.download(d, this.props.genomeNexusMyVariantInfoCache as GenomeNexusMyVariantInfoCache),
+            tooltip: (<span><a href="https://www.ncbi.nlm.nih.gov/clinvar/" target="_blank">ClinVar</a>
+            &nbsp;aggregates information about genomic variation and its relationship to human health.</span>),
+            defaultSortDirection: "desc",
+            visible: false,
+            align: "right"
+        };
+
+        this._columns[MutationTableColumnType.DBSNP] = {
+            name: "dbSNP",
+            render: (d:Mutation[]) => DbsnpColumnFormatter.renderFunction(d, this.props.genomeNexusMyVariantInfoCache as GenomeNexusMyVariantInfoCache),
+            sortBy: (d:Mutation[]) => DbsnpColumnFormatter.getSortValue(d, this.props.genomeNexusMyVariantInfoCache as GenomeNexusMyVariantInfoCache),
+            download: (d:Mutation[]) => DbsnpColumnFormatter.download(d, this.props.genomeNexusMyVariantInfoCache as GenomeNexusMyVariantInfoCache),
+            tooltip: (
+                <span style={{maxWidth:370, display:"block", textAlign:"left"}}>
+                    The Single Nucleotide Polymorphism Database (<a href="https://www.ncbi.nlm.nih.gov/snp/" target="_blank">dbSNP</a>) 
+                    is a free public archive for genetic variation within and across different species. 
+                    <br />NOTE: Currently only SNPs, single base deletions and insertions are supported.
+                </span>
+            ),
+            defaultSortDirection: "desc",
             visible: false,
             align: "right"
         };
