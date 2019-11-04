@@ -483,8 +483,8 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                 return ()=>(
                     <AdmixBarPlot
                         promise={this.props.promise}
-                        width={getWidthByDimension(this.props.chartMeta.dimension, this.borderWidth)}
-                        height={getTableHeightByDimension(this.props.chartMeta.dimension, this.chartHeaderHeight)}
+                        width={getWidthByDimension(this.props.dimension, this.borderWidth)}
+                        height={getTableHeightByDimension(this.props.dimension, this.chartHeaderHeight)}
                         filters={this.props.filters}
                     />
                 );

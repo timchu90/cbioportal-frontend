@@ -70,7 +70,7 @@ export enum UniqueKey {
     FRACTION_GENOME_ALTERED = "SAMPLE_FRACTION_GENOME_ALTERED",
     WITH_MUTATION_DATA = "WITH_MUTATION_DATA",
     WITH_FUSION_DATA = "WITH_FUSION_DATA",
-    WITH_CNA_DATA = "WITH_CNA_DATA"
+    WITH_CNA_DATA = "WITH_CNA_DATA",
     ADMIXTURE_DATA = "ADMIXTURE_DATA"
 }
 
@@ -165,6 +165,20 @@ export const SPECIAL_CHARTS: ChartMetaWithDimensionAndChartType[] = [{
         },
         priority: 0,
         renderWhenDataChange: false
+    },
+    {
+        uniqueKey: UniqueKey.ADMIXTURE_DATA,
+        displayName: 'Admixture',
+        description: '',
+        chartType: ChartTypeEnum.ADMIX_BAR_CHART,
+        dataType: ChartMetaDataTypeEnum.GENOMIC,
+        patientAttribute: false,
+        dimension: {
+            w: 4,
+            h: 2
+        },
+        priority: 4000,
+        renderWhenDataChange: true
     }];
 
 export const COLORS = [

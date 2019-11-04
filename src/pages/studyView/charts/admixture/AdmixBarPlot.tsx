@@ -9,7 +9,7 @@ import {ClinicalDataIntervalFilterValue, DataBin} from "shared/api/generated/CBi
 import {AbstractChart} from "pages/studyView/charts/ChartContainer";
 import autobind from 'autobind-decorator';
 import {STUDY_VIEW_CONFIG} from "../../StudyViewConfig";
-import {getTextDiagonal, getTextHeight, getTextWidth} from "../../../../shared/lib/wrapText";
+//import {getTextDiagonal, getTextHeight, getTextWidth} from "../../../../shared/lib/wrapText";
 import {AdmixtureType} from "pages/studyView/StudyViewPageStore";
 import {PatientAdmixture} from 'shared/model/PatientAdmixture';
 import * as d3 from "d3"

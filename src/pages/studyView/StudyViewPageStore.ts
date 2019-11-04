@@ -971,8 +971,7 @@ export class StudyViewPageStore {
     public clinicalDataBinPromises: { [id: string]: MobxPromise<DataBin[]> } = {};
     public clinicalDataCountPromises: { [id: string]: MobxPromise<ClinicalDataCountSummary[]> } = {};
     public customChartsPromises: { [id: string]: MobxPromise<ClinicalDataCountSummary[]> } = {};
-    //MAYBE CHANGE THIS TO ClinicalDataCountSummary
-    public admixDataPromises: {[id: string]: MobxPromise<ClinicalDataCountWithColor[]>} = {};
+    public admixDataPromises: {[id: string]: MobxPromise<ClinicalDataCountSummary[]>} = {};
 
 
     private _chartSampleIdentifiersFilterSet =  observable.map<SampleIdentifier[]>();
@@ -2484,6 +2483,7 @@ export class StudyViewPageStore {
             };
             return acc;
         }, _chartMetaSet);
+        /*
         _chartMetaSet[UniqueKey.ADMIXTURE_DATA] = {
             uniqueKey: UniqueKey.ADMIXTURE_DATA,
             dataType: getChartMetaDataType(UniqueKey.ADMIXTURE_DATA),
@@ -2495,7 +2495,7 @@ export class StudyViewPageStore {
             renderWhenDataChange: true,
             description: ''
         };
-
+        */
         if (!_.isEmpty(this.mutationProfiles.result)) {
             _chartMetaSet[UniqueKey.MUTATED_GENES_TABLE] = {
                 uniqueKey: UniqueKey.MUTATED_GENES_TABLE,
@@ -2835,6 +2835,7 @@ export class StudyViewPageStore {
         });
 
         const cancerTypeIds = _.uniq(this.queriedPhysicalStudies.result.map(study => study.cancerTypeId));
+        /*
         this.chartsType.set(UniqueKey.ADMIXTURE_DATA, ChartTypeEnum.ADMIX_BAR_CHART);
         this.chartsDimension[UniqueKey.ADMIXTURE_DATA] = STUDY_VIEW_CONFIG.layout.dimensions[ChartTypeEnum.ADMIX_BAR_CHART];
         if (admixEASFlag && admixSASFlag && admixEURFlag && admixAMRFlag && admixAFRFlag) {
@@ -2856,7 +2857,12 @@ export class StudyViewPageStore {
                 this.changeChartVisibility(UniqueKey.DISEASE_FREE_SURVIVAL, true);
             }
         }
-
+        */
+        this.chartsType.set(UniqueKey.ADMIXTURE_DATA, ChartTypeEnum.ADMIX_BAR_CHART);
+        this.chartsDimension.set(UniqueKey.ADMIXTURE_DATA, STUDY_VIEW_CONFIG.layout.dimensions[ChartTypeEnum.ADMIX_BAR_CHART]);
+        if (admixEASFlag && admixSASFlag && admixEURFlag && admixAMRFlag && admixAFRFlag) {
+            this.changeChartVisibility(UniqueKey.ADMIXTURE_DATA, true);
+        }
         this.chartsType.set(UniqueKey.OVERALL_SURVIVAL, ChartTypeEnum.SURVIVAL);
         this.chartsDimension.set(UniqueKey.OVERALL_SURVIVAL, STUDY_VIEW_CONFIG.layout.dimensions[ChartTypeEnum.SURVIVAL]);
         if (osStatusFlag && osMonthsFlag && getDefaultPriorityByUniqueKey(UniqueKey.OVERALL_SURVIVAL) !== 0) {
