@@ -3355,7 +3355,6 @@ export class StudyViewPageStore {
                 admixture: []
             });
         }
-        
         return admixtureTypes
     }
 

@@ -169,9 +169,9 @@ export const SPECIAL_CHARTS: ChartMetaWithDimensionAndChartType[] = [{
     {
         uniqueKey: UniqueKey.ADMIXTURE_DATA,
         displayName: 'Admixture',
-        description: '',
+        description: 'Admixture',
         chartType: ChartTypeEnum.ADMIX_BAR_CHART,
-        dataType: ChartMetaDataTypeEnum.GENOMIC,
+        dataType: ChartMetaDataTypeEnum.CLINICAL,
         patientAttribute: false,
         dimension: {
             w: 4,

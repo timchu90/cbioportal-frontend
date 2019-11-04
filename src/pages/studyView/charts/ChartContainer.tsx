@@ -480,14 +480,16 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                 );
             }
             case ChartTypeEnum.ADMIX_BAR_CHART: {
-                return ()=>(
-                    <AdmixBarPlot
-                        promise={this.props.promise}
-                        width={getWidthByDimension(this.props.dimension, this.borderWidth)}
-                        height={getTableHeightByDimension(this.props.dimension, this.chartHeaderHeight)}
-                        filters={this.props.filters}
-                    />
-                );
+                if(this.props.promise.isComplete){
+                    return ()=>(
+                        <AdmixBarPlot
+                            promise={this.props.promise}
+                            width={getWidthByDimension(this.props.dimension, this.borderWidth)}
+                            height={getTableHeightByDimension(this.props.dimension, this.chartHeaderHeight)}
+                            filters={this.props.filters}
+                        />
+                    );
+                }
             }
             default:
                 return null;

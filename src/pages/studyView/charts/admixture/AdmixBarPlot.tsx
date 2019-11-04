@@ -9,7 +9,7 @@ import {ClinicalDataIntervalFilterValue, DataBin} from "shared/api/generated/CBi
 import {AbstractChart} from "pages/studyView/charts/ChartContainer";
 import autobind from 'autobind-decorator';
 import {STUDY_VIEW_CONFIG} from "../../StudyViewConfig";
-//import {getTextDiagonal, getTextHeight, getTextWidth} from "../../../../shared/lib/wrapText";
+import {getTextDiagonal, getTextHeight, getTextWidth} from "public-lib/lib/TextTruncationUtils";
 import {AdmixtureType} from "pages/studyView/StudyViewPageStore";
 import {PatientAdmixture} from 'shared/model/PatientAdmixture';
 import * as d3 from "d3"
@@ -133,7 +133,7 @@ export default class AdmixBarPlot extends React.Component<IAdmixBarPlotProps, {}
             .attr('dy',scale(15))
 
       //start drawing actual data
-      
+        
         var data = this.props.promise.result
         
         data!.sort((a, b) => (a.sortScore < b.sortScore) ? 1 : -1)

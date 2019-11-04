@@ -91,7 +91,7 @@ export class StudySummaryTab extends React.Component<IStudySummaryTabProps, {}> 
             setComparisonConfirmationModal: this.store.setComparisonConfirmationModal
         };
 
-        const {BAR_CHART, SURVIVAL, CNA_GENES_TABLE, TABLE, SCATTER, PIE_CHART, MUTATED_GENES_TABLE, FUSION_GENES_TABLE} = ChartTypeEnum;
+        const {BAR_CHART, SURVIVAL, CNA_GENES_TABLE, TABLE, SCATTER, PIE_CHART, MUTATED_GENES_TABLE, FUSION_GENES_TABLE, ADMIX_BAR_CHART} = ChartTypeEnum;
         switch (this.store.chartsType.get(chartMeta.uniqueKey)) {
             case PIE_CHART: {
 
@@ -210,7 +210,7 @@ export class StudySummaryTab extends React.Component<IStudySummaryTabProps, {}> 
                 props.downloadTypes = ["Data", "SVG", "PDF"];
                 break;
             }
-            case ChartTypeEnum.ADMIX_BAR_CHART: {
+            case ADMIX_BAR_CHART: {
                 props.promise = this.store.admixtureChartData;
                 break;
             }
