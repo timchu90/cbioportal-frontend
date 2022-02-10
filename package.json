@@ -151,7 +151,7 @@
     "mobx-react-router": "^3.1.2",
     "mobx-utils": "^2.0.1",
     "mobxpromise": "github:cbioportal/mobxpromise#v1.0.2",
-    "node-sass": "^4.9.3",
+    "node-sass": "^7.0.0",
     "numeral": "^2.0.6",
     "object-sizeof": "^1.2.0",
     "oncoprintjs": "3.0.0",
